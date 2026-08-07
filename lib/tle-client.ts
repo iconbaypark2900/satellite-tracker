@@ -93,7 +93,7 @@ export async function fetchTleForGroup(
 
   const url = CELESTRAK_TLE_GROUPS[group];
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 15000);
+  const timeoutId = setTimeout(() => controller.abort(), 5000);
 
   try {
     const response = await fetch(url, {
@@ -128,26 +128,29 @@ export async function fetchTleForGroup(
 }
 
 /**
- * Fetch TLE data for all Celestrak groups.
- * Returns a combined array, stopping on individual group failures.
+ * Fetch TLE data for all Celestrak groups in parallel.
+ * Falls back to default satellite list if all groups fail.
  */
 export async function fetchAllTles(signal?: AbortSignal): Promise<TleSet[]> {
   const groups: SatelliteGroup[] = [
     "STATIONS", "STARLINK", "ONEWEB", "GPS-OPS", "GOES",
   ];
 
+  // Fetch all groups in parallel for speed
+  const results = await Promise.allSettled(
+    groups.map((group) => fetchTleForGroup(group, signal))
+  );
+
   const allTles: TleSet[] = [];
   const errors: string[] = [];
 
-  for (const group of groups) {
-    try {
-      const tles = await fetchTleForGroup(group, signal);
-      allTles.push(...tles);
-    } catch (err) {
-      errors.push(`${group}: ${err instanceof Error ? err.message : String(err)}`);
-      // Continue with other groups
+  results.forEach((result, index) => {
+    if (result.status === "fulfilled" && result.value.length > 0) {
+      allTles.push(...result.value);
+    } else if (result.status === "rejected") {
+      errors.push(`${groups[index]}: ${result.reason instanceof Error ? result.reason.message : String(result.reason)}`);
     }
-  }
+  });
 
   // If all groups failed, fall back to default satellite list
   if (allTles.length === 0 && errors.length === groups.length) {

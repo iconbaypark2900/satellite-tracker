@@ -6,46 +6,65 @@
  * real time + offset minutes.
  */
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef, useCallback } from "react";
 import { useSatelliteStore } from "@/lib/satellite-store";
-import { TimeControlState } from "@/types";
-import { TIME_SLIDER_MIN, TIME_SLIDER_MAX } from "@/lib/constants";
+import { TIME_SLIDER_MIN, TIME_SLIDER_MAX, MIN_REPROPAGATE_MS } from "@/lib/constants";
 
 export function useTimeControl() {
-  const store = useSatelliteStore();
-  const { timeControl, setTimeOffset, setPlaying, setSpeed, setSimTime } = store;
-
+  const { timeControl, setTimeOffset, setPlaying, setSpeed, setSimTime } = useSatelliteStore();
   const { offsetMinutes, isPlaying, speed, simTime } = timeControl;
-  const rafRef = useRef<number>();
 
-  // Real-time animation loop for time advancement
+  // Refs to avoid re-creating the animation loop on every state change.
+  // The tick function reads current values via getState() to avoid
+  // stale closures and dependency explosions.
+  const stateRef = useRef({ isPlaying, speed });
+  stateRef.current = { isPlaying, speed };
+
+  // Real-time animation loop for time advancement.
+  // Only re-creates the loop when isPlaying or speed changes —
+  // NOT when offsetMinutes changes (that would cause infinite loops).
   useEffect(() => {
     if (!isPlaying) return;
 
     let last = performance.now();
 
     const tick = (now: number) => {
-      const deltaSec = (now - last) / 1000;
-      const deltaMin = (deltaSec * speed * 60); // speed multiplier
+      const current = stateRef.current;
 
-      // Only update if there's a meaningful delta
-      const newOffset = offsetMinutes + deltaMin;
+      const deltaMs = now - last;
+      if (deltaMs < MIN_REPROPAGATE_MS) {
+        // Throttle: only update when enough time has passed
+        rafRef.current = requestAnimationFrame(tick);
+        return;
+      }
+
+      const deltaSec = deltaMs / 1000;
+      const deltaMin = deltaSec * current.speed * 60;
+
+      // Read the current offset directly from the store (no stale closure)
+      const currentOffset = useSatelliteStore.getState().timeControl.offsetMinutes;
+      const newOffset = currentOffset + deltaMin;
 
       // Clamp to slider range
-      const clampedOffset = Math.max(TIME_SLIDER_MIN, Math.min(TIME_SLIDER_MAX, newOffset));
+      const clampedOffset = Math.max(
+        TIME_SLIDER_MIN,
+        Math.min(TIME_SLIDER_MAX, newOffset)
+      );
+
       setTimeOffset(clampedOffset);
       setSimTime(new Date(Date.now() + clampedOffset * 60000));
-
       last = now;
+
       rafRef.current = requestAnimationFrame(tick);
     };
 
+    const rafRef = { current: 0 as number | undefined };
     rafRef.current = requestAnimationFrame(tick);
 
     return () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
     };
-  }, [isPlaying, speed, offsetMinutes, setTimeOffset, setPlaying, setSpeed, setSimTime]);
+  }, [isPlaying, speed, setTimeOffset, setSimTime]);
 
   const setTime = useCallback((minutes: number) => {
     setTimeOffset(minutes);
