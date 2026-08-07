@@ -10,10 +10,14 @@
 
 import { useMemo, useRef, useCallback } from "react";
 import { useFrame, extend } from "@react-three/fiber";
-import { InstancedMesh, Object3D, Color, Matrix4, Vector3, Quaternion } from "three";
+import { InstancedMesh, Object3D, Color, InstancedBufferAttribute } from "three";
 import { propagateSatellite } from "@/lib/orbit-utils";
 import { TleSet, Satellite } from "@/types";
 import { getGroupColor } from "@/lib/color-utils";
+
+// R3F needs explicit registration for InstanceColor since three.js v165
+// does not expose it as a constructor in the global namespace.
+extend({ InstanceColor: InstancedBufferAttribute });
 
 const DUMMY = new Object3D();
 
@@ -93,7 +97,7 @@ export default function SatelliteIcons({ tles, simTime, selectedNorad, onSelect 
     >
       <sphereGeometry args={[3, 16, 16]} />
       <meshBasicMaterial toneMapped={false} />
-      <instanceColor args={[instanceColors]} />
+      <instanceColor args={[instanceColors, 3]} attach="instanceColor" />
     </instancedMesh>
   );
 }

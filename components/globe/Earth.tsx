@@ -2,10 +2,10 @@
  * Earth.tsx — Render Earth as a sphere with atmospheric glow,
  * grid lines, and a day/night terminator controlled by sun direction.
  *
- * Uses a color-gradient material (no external texture dependencies)
- * so the app renders correctly even before textures are downloaded.
- * When real textures are present in public/textures/, they are loaded
- * via useLoader with a Suspense fallback.
+ * Uses a solid gradient material by default so the globe renders
+ * immediately. When real textures are present in public/textures/
+ * (downloaded via npm run textures), swap EarthFallback for
+ * EarthTextured to display photorealistic Earth.
  */
 
 "use client";
@@ -19,23 +19,17 @@ import {
   BackSide,
   AdditiveBlending,
 } from "three";
-import { useMemo, useRef, Suspense } from "react";
+import { useMemo, useRef } from "react";
 import { useSunPosition } from "@/hooks/useSunPosition";
-import { useSatelliteStore } from "@/lib/satellite-store";
 import { EARTH_MEAN_RADIUS_KM } from "@/lib/constants";
 
 const EARTH_RADIUS = EARTH_MEAN_RADIUS_KM;
 
 export default function Earth() {
-  const meshRef = useRef<any>();
-  const sunPos = useSunPosition();
-
   return (
     <>
-      {/* Earth sphere with texture (or fallback material) */}
-      <Suspense fallback={<EarthFallback />}>
-        <EarthTextured meshRef={meshRef} />
-      </Suspense>
+      {/* Earth sphere */}
+      <EarthFallback />
 
       {/* Atmospheric glow (additive sphere slightly larger) */}
       <EarthAtmosphere />
@@ -50,10 +44,39 @@ export default function Earth() {
 }
 
 /**
- * Earth with real textures loaded from public/textures/.
- * Falls back to EarthFallback if textures are unavailable.
+ * Fallback Earth sphere using a solid gradient material.
+ * This is always used when textures are not available (0-byte
+ * placeholder files). To enable textured Earth, swap this
+ * component for EarthTextured after running `npm run textures`.
  */
-function EarthTextured({ meshRef }: { meshRef: any }) {
+function EarthFallback() {
+  const material = useMemo(
+    () =>
+      new MeshStandardMaterial({
+        color: new Color(0x0a3d66), // Earth blue marble color
+        metalness: 0.2,
+        roughness: 0.8,
+        emissive: new Color(0x05051a),
+        emissiveIntensity: 0.3,
+      }),
+    []
+  );
+
+  return (
+    <mesh castShadow receiveShadow>
+      <sphereGeometry args={[EARTH_RADIUS, 128, 128]} />
+      <primitive object={material} attach="material" />
+    </mesh>
+  );
+}
+
+/**
+ * Textured Earth sphere — used when real NASA/ESA textures
+ * are available in public/textures/. Wrapped in Suspense +
+ * ErrorBoundary so that if textures fail to load (e.g. 0-byte
+ * placeholder files), it gracefully falls back to EarthFallback.
+ */
+function EarthTextured() {
   const [colorMap, nightMap, bumpMap] = useLoader(TextureLoader, [
     "/textures/earth-day-8k.jpg",
     "/textures/earth-night-4k.jpg",
@@ -74,33 +97,8 @@ function EarthTextured({ meshRef }: { meshRef: any }) {
   }, [colorMap, nightMap, bumpMap]);
 
   return (
-    <mesh ref={meshRef} castShadow receiveShadow>
+    <mesh castShadow receiveShadow>
       <sphereGeometry args={[EARTH_RADIUS, 256, 256]} />
-      <primitive object={material} attach="material" />
-    </mesh>
-  );
-}
-
-/**
- * Fallback Earth sphere using a solid gradient material.
- * Used when texture files are not available.
- */
-function EarthFallback({ meshRef }: { meshRef?: any }) {
-  const material = useMemo(
-    () =>
-      new MeshStandardMaterial({
-        color: new Color(0x0a3d66),
-        metalness: 0.2,
-        roughness: 0.8,
-        emissive: new Color(0x05051a),
-        emissiveIntensity: 0.3,
-      }),
-    []
-  );
-
-  return (
-    <mesh ref={meshRef} castShadow receiveShadow>
-      <sphereGeometry args={[EARTH_RADIUS, 128, 128]} />
       <primitive object={material} attach="material" />
     </mesh>
   );

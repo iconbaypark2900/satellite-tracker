@@ -7,7 +7,7 @@
  */
 
 import { useEffect } from "react";
-import useSWR from "swr";
+import useSWR, { mutate } from "swr";
 import { useSatelliteStore } from "@/lib/satellite-store";
 import { TLE_CACHE_TTL } from "@/lib/constants";
 import { Satellite, TleSet, SatelliteGroup } from "@/types";
@@ -15,6 +15,18 @@ import { GROUP_COLORS } from "@/lib/constants";
 import { getGroupColor } from "@/lib/color-utils";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
+
+/** Direct fetch fallback — bypasses SWR if it's stuck. */
+async function directFetchTle(): Promise<TleSet[] | null> {
+  try {
+    const res = await fetch("/api/tle");
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.tles || [];
+  } catch {
+    return null;
+  }
+}
 
 export function useSatelliteInitializer() {
   const {
@@ -85,13 +97,62 @@ export function useSatelliteInitializer() {
         setError(err instanceof Error ? err.message : "Failed to initialize");
         setLoading(false);
       }
-    }
-
-    if (error) {
+    } else if (error) {
       setError(error.message || "Failed to fetch satellite data");
+      setLoading(false);
+    } else if (!isValidating) {
+      // SWR has finished but returned no data and no error —
+      // clear the loading state to prevent infinite loading screen
       setLoading(false);
     }
   }, [data, error, isValidating, setSatellites, setLoading, setError, setTleAge]);
+
+  // Safety: if the initial SWR fetch takes longer than 8s (e.g., Celestrak
+  // timeout), fall back to a direct fetch from the local cache so the UI unblocks.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      const store = useSatelliteStore.getState();
+      if (store.isLoading && store.satellites.size === 0) {
+        const tleSets = await directFetchTle();
+        if (!cancelled && tleSets && tleSets.length > 0) {
+          const satellites = new Map<string, Satellite>();
+          const seenIds = new Set<string>();
+          tleSets.forEach((tle) => {
+            if (tle.noradId && !seenIds.has(tle.noradId)) {
+              seenIds.add(tle.noradId);
+              const group = (tle.group || "OTHER") as SatelliteGroup;
+              satellites.set(tle.noradId, {
+                noradId: tle.noradId,
+                name: tle.name,
+                tle: tle,
+                group,
+                type: inferType(group),
+                operator: inferOperator(group),
+                country: inferCountry(group),
+                period: 0,
+                inclination: 0,
+                raan: 0,
+                apogee: 0,
+                perigee: 0,
+                altitude: 0,
+                color: getGroupColor(group),
+                launchDate: undefined,
+              });
+            }
+          });
+          store.setSatellites(satellites);
+          store.setLoading(false);
+          store.setError(null);
+        }
+      }
+    }, 8000);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, []);
 
   return { data, error, isValidating };
 }

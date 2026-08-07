@@ -8,7 +8,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { Group, Line, Line2, Color } from "three";
+import { Group, Color } from "three";
 import { useThree } from "@react-three/fiber";
 import { propagateSatellite, eciToEcef } from "@/lib/orbit-utils";
 import { TleSet } from "@/types";
