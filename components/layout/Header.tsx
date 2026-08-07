@@ -79,6 +79,7 @@ export default function Header() {
 
       <div
         id="sb-stats"
+        suppressHydrationWarning={true}
         style={{
           display: "flex",
           alignItems: "center",
