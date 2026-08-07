@@ -1,0 +1,50 @@
+/* CSS-only micro-animations for UI polish */
+
+@keyframes pulse-slow {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.satellite-glow {
+  animation: pulse-slow 3s ease-in-out infinite;
+}
+
+.spin-slow {
+  animation: spin-slow 20s linear infinite;
+}
+
+/* Smooth transitions */
+.smooth-transition {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Fade-in for satellite icons */
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.8); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.satellite-icon {
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* Slide-in for sidebar */
+@keyframes slideInRight {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+.sidebar-enter {
+  animation: slideInRight 0.3s ease-out;
+}
+
+/* Hover effects */
+.satellite-list-item:hover {
+  background: rgba(26, 26, 62, 0.6);
+  transform: translateX(2px);
+}

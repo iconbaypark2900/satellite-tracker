@@ -1,0 +1,16 @@
+{
+  "name": "Satellite Tracker — Real-time 3D Orbital Visualization",
+  "short_name": "Satellite Tracker",
+  "description": "Track satellites in real-time with SGP4 orbital mechanics. Built with Next.js + Three.js.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#05051a",
+  "theme_color": "#4137ff",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "32x32",
+      "type": "image/x-icon"
+    }
+  ]
+}

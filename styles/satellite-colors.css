@@ -1,0 +1,28 @@
+/* Constellation color classes for UI elements */
+
+.sat-stations { color: #FFD700; }
+.sat-starlink { color: #4A9EFF; }
+.sat-oneweb { color: #BA68C8; }
+.sat-gps { color: #81D4FA; }
+.sat-goes { color: #8AFF8A; }
+.sat-ses { color: #FFCC80; }
+.sat-intelsat { color: #FF80AB; }
+.sat-other { color: #ECEFF1; }
+
+.bg-stations { background-color: #FFD700; }
+.bg-starlink { background-color: #4A9EFF; }
+.bg-oneweb { background-color: #BA68C8; }
+.bg-gps { background-color: #81D4FA; }
+.bg-goes { background-color: #8AFF8A; }
+.bg-ses { background-color: #FFCC80; }
+.bg-intelsat { background-color: #FF80AB; }
+.bg-other { background-color: #ECEFF1; }
+
+.glow-stations { box-shadow: 0 0 8px #FFD700; }
+.glow-starlink { box-shadow: 0 0 8px #4A9EFF; }
+.glow-oneweb { box-shadow: 0 0 8px #BA68C8; }
+.glow-gps { box-shadow: 0 0 8px #81D4FA; }
+.glow-goes { box-shadow: 0 0 8px #8AFF8A; }
+.glow-ses { box-shadow: 0 0 8px #FFCC80; }
+.glow-intelsat { box-shadow: 0 0 8px #FF80AB; }
+.glow-other { box-shadow: 0 0 8px #ECEFF1; }
