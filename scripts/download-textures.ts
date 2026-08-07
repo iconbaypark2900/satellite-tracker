@@ -10,10 +10,15 @@
  */
 
 import * as fs from "fs";
-import * as path from "path";
 import * as https from "https";
+import * as path from "path";
+import { fileURLToPath } from "url";
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const TEXTURE_DIR = path.resolve(__dirname, "../public/textures");
+
+// Use https-compatible protocol
+const protocol = "https";
 
 // Texture sources (NASA Visible Earth / ESA)
 const TEXTURES = [
@@ -89,7 +94,7 @@ async function main() {
     try {
       await download(tex.url, dest);
       const stats = fs.statSync(dest);
-      console.log(`    ✅ ${stats.size / 1024 / 1024.toFixed(1)} MB\n`);
+      console.log(`    ✅ ${(stats.size / (1024 * 1024)).toFixed(1)} MB\n`);
     } catch (err) {
       console.warn(`    ⚠️  Failed: ${err instanceof Error ? err.message : err}\n`);
       // Create a placeholder file so the build doesn't break

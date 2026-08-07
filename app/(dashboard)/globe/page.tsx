@@ -6,6 +6,8 @@
  * and details. Time slider at the bottom.
  */
 
+"use client";
+
 import dynamic from "next/dynamic";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";

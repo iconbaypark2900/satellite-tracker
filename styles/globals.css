@@ -1,6 +1,4 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* Custom styles (imported via app/globals.css which has @tailwind directives) */
 
 :root {
   --color-primary: #4137ff;

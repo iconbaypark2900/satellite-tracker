@@ -1,0 +1,140 @@
+{
+  "generatedAt": "2026-08-07T03:47:23.691Z",
+  "tleCount": 13,
+  "groups": {
+    "STATIONS": {
+      "count": 4,
+      "fetchedAt": "2026-08-07T03:47:23.690Z"
+    },
+    "STARLINK": {
+      "count": 2,
+      "fetchedAt": "2026-08-07T03:47:23.691Z"
+    },
+    "ONEWEB": {
+      "count": 1,
+      "fetchedAt": "2026-08-07T03:47:23.691Z"
+    },
+    "GPS-OPS": {
+      "count": 1,
+      "fetchedAt": "2026-08-07T03:47:23.691Z"
+    },
+    "GOES": {
+      "count": 2,
+      "fetchedAt": "2026-08-07T03:47:23.691Z"
+    },
+    "INTREPID": {
+      "count": 1,
+      "fetchedAt": "2026-08-07T03:47:23.691Z"
+    },
+    "OTHER": {
+      "count": 2,
+      "fetchedAt": "2026-08-07T03:47:23.691Z"
+    }
+  },
+  "tles": [
+    {
+      "name": "ISS (ZARYA)",
+      "noradId": "25544",
+      "line1": "",
+      "line2": "",
+      "epoch": "",
+      "group": "STATIONS"
+    },
+    {
+      "name": "Hubble Space Telescope",
+      "noradId": "20580",
+      "line1": "",
+      "line2": "",
+      "epoch": "",
+      "group": "STATIONS"
+    },
+    {
+      "name": "Tiangong",
+      "noradId": "48793",
+      "line1": "",
+      "line2": "",
+      "epoch": "",
+      "group": "STATIONS"
+    },
+    {
+      "name": "Starlink-30001",
+      "noradId": "70001",
+      "line1": "",
+      "line2": "",
+      "epoch": "",
+      "group": "STARLINK"
+    },
+    {
+      "name": "Starlink-70001",
+      "noradId": "71001",
+      "line1": "",
+      "line2": "",
+      "epoch": "",
+      "group": "STARLINK"
+    },
+    {
+      "name": "OneWeb-2001",
+      "noradId": "44926",
+      "line1": "",
+      "line2": "",
+      "epoch": "",
+      "group": "ONEWEB"
+    },
+    {
+      "name": "GPS IIR-10 (USA-183)",
+      "noradId": "29494",
+      "line1": "",
+      "line2": "",
+      "epoch": "",
+      "group": "GPS-OPS"
+    },
+    {
+      "name": "GOES-East (G16)",
+      "noradId": "39246",
+      "line1": "",
+      "line2": "",
+      "epoch": "",
+      "group": "GOES"
+    },
+    {
+      "name": "INTELSAT 902",
+      "noradId": "27627",
+      "line1": "",
+      "line2": "",
+      "epoch": "",
+      "group": "INTREPID"
+    },
+    {
+      "name": "NOAA 20 (JPSS-1)",
+      "noradId": "40697",
+      "line1": "",
+      "line2": "",
+      "epoch": "",
+      "group": "GOES"
+    },
+    {
+      "name": "Sentinel-3A",
+      "noradId": "40699",
+      "line1": "",
+      "line2": "",
+      "epoch": "",
+      "group": "STATIONS"
+    },
+    {
+      "name": "Voyager 1",
+      "noradId": "1132",
+      "line1": "",
+      "line2": "",
+      "epoch": "",
+      "group": "OTHER"
+    },
+    {
+      "name": "Voyager 2",
+      "noradId": "1133",
+      "line1": "",
+      "line2": "",
+      "epoch": "",
+      "group": "OTHER"
+    }
+  ]
+}

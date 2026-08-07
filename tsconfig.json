@@ -1,7 +1,11 @@
 {
   "compilerOptions": {
     "target": "es2022",
-    "lib": ["dom", "dom.iterable", "es2022"],
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "es2022"
+    ],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
@@ -12,33 +16,59 @@
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "jsx": "react-jsx",
+    "jsx": "preserve",
     "incremental": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./*"],
-      "@/components/*": ["./components/*"],
-      "@/lib/*": ["./lib/*"],
-      "@/hooks/*": ["./hooks/*"],
-      "@/types/*": ["./types/*"],
-      "@/workers/*": ["./workers/*"]
+      "@/*": [
+        "./*"
+      ],
+      "@/components/*": [
+        "./components/*"
+      ],
+      "@/lib/*": [
+        "./lib/*"
+      ],
+      "@/hooks/*": [
+        "./hooks/*"
+      ],
+      "@/types/*": [
+        "./types/*"
+      ],
+      "@/workers/*": [
+        "./workers/*"
+      ]
     },
-    "types": ["jest", "node"]
+    "types": [
+      "jest",
+      "node"
+    ],
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ]
   },
   "include": [
-    "next.config.mjs",
-    "tailwind.config.js",
-    "postcss.config.js",
-    "middleware.ts",
-    "scripts/**/*.ts",
-    "workers/**/*.ts",
-    "lib/**/*.ts",
-    "hooks/**/*.ts",
+    "app/**/*.ts",
+    "app/**/*.tsx",
     "components/**/*.ts",
     "components/**/*.tsx",
+    "hooks/**/*.ts",
+    "lib/**/*.ts",
+    "middleware.ts",
+    "next.config.mjs",
+    "postcss.config.js",
+    "scripts/**/*.ts",
+    "tailwind.config.js",
     "types/**/*.ts",
-    "app/**/*.ts",
-    "app/**/*.tsx"
+    "workers/**/*.ts",
+    ".next/types/**/*.ts"
   ],
-  "exclude": ["node_modules", ".next", "out", "build"]
+  "exclude": [
+    "node_modules",
+    ".next",
+    "out",
+    "build"
+  ]
 }

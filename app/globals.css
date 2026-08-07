@@ -2,4 +2,28 @@
 @tailwind components;
 @tailwind utilities;
 
-@import "@/styles/globals.css";
+@import "../styles/globals.css";
+@import "../styles/animations.css";
+@import "../styles/satellite-colors.css";
+
+:root {
+  --color-primary: #4137ff;
+  --color-space: #05051a;
+  --color-text-primary: #e0e0ff;
+  --color-text-muted: #6f6d69;
+  --font-mono: "Monaco", "Consolas", monospace;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  font-family: var(--font-mono, monospace);
+  background: var(--color-space);
+  color: var(--color-text-primary);
+}
+
+#__next {
+  height: 100%;
+}

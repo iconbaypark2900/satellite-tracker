@@ -5,6 +5,8 @@
  * sorted by time. Includes location picker and visibility filters.
  */
 
+"use client";
+
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import LoadingScreen from "@/components/layout/LoadingScreen";

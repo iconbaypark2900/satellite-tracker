@@ -91,8 +91,8 @@ export function propagateSatellite(
   }
 
   try {
-    // satellite.js v4+: twoline2sat(line1, line2, name?)
-    const satRec = satellite.twoline2sat(tle.line1, tle.line2, tle.name);
+    // satellite.js v6: twoline2satrec(line1, line2, name?)
+    const satRec = satellite.twoline2satrec(tle.line1, tle.line2, tle.name);
 
     const result = satellite.propagate(satRec, date) as {
       position: number[] | undefined;
@@ -323,6 +323,23 @@ export function orbitalPeriod(altitudeKm: number): number {
   const r = EARTH_RADIUS_KM + altitudeKm;
   const v = Math.sqrt(EARTH_MU / r);
   return (2 * Math.PI * r) / v / 60; // seconds → minutes
+}
+
+/**
+ * Classify orbit type based on altitude and inclination.
+ *
+ * @param altitudeKm - Satellite altitude in km
+ * @param inclinationDeg - Orbital inclination in degrees
+ * @returns Orbit type classification string
+ */
+export function orbitType(altitudeKm: number, inclinationDeg: number): string {
+  if (altitudeKm > 35000) return "GEO";
+  if (inclinationDeg < 1) return "GEO (Eq)";
+  if (inclinationDeg > 80) return "Polar";
+  if (inclinationDeg > 50) return "Sun-Sync";
+  if (altitudeKm < 2000) return "LEO";
+  if (altitudeKm < 35000) return "MEO";
+  return "Elliptical";
 }
 
 // ─── Constants ───────────────────────────────────────── //

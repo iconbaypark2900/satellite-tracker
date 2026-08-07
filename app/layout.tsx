@@ -7,9 +7,7 @@
  * - Theme (dark mode default)
  */
 
-import "@/styles/globals.css";
-import "@/styles/animations.css";
-import "@/styles/satellite-colors.css";
+import "@/app/globals.css";
 
 import { Inter, Roboto_Mono } from "next/font/google";
 import type { ReactNode } from "react";

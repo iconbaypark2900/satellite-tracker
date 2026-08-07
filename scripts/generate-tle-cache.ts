@@ -12,10 +12,12 @@
 
 import * as fs from "fs";
 import * as path from "path";
+import { fileURLToPath } from "url";
 import { fetchAllTles } from "@/lib/tle-client";
 import { TleSet, SatelliteGroup } from "@/types";
 import { CELESTRAK_TLE_GROUPS } from "@/lib/constants";
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const CACHE_FILE = path.resolve(__dirname, "../public/tle-cache.json");
 
 interface TleCache {

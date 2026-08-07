@@ -1,11 +1,12 @@
-import { NextConfig } from "next";
-
-/** @type {NextConfig} */
-const nextConfig: NextConfig = {
+/** @type {import('next').NextConfig} */
+const nextConfig = {
   reactStrictMode: true,
-  swcMinify: true,
   images: {
-    domains: ["celestrak.org", " NASA.gov", "unpkg.com"],
+    remotePatterns: [
+      { protocol: "https", hostname: "celestrak.org" },
+      { protocol: "https", hostname: "nasa.gov" },
+      { protocol: "https", hostname: "unpkg.com" },
+    ],
   },
   headers: async () => [
     {
