@@ -91,19 +91,19 @@ export const SATCAT_RECORDS_URL = "https://celestrak.org/satcat/records.php?FORM
  * Mirrors the dataset in demo/index.html.
  */
 export const DEFAULT_SATELLITES = [
-  { name: "ISS (ZARYA)", norad: "25544", group: "STATIONS" },
-  { name: "Hubble Space Telescope", norad: "20580", group: "STATIONS" },
-  { name: "Tiangong", norad: "48793", group: "STATIONS" },
-  { name: "Starlink-30001", norad: "70001", group: "STARLINK" },
-  { name: "Starlink-70001", norad: "71001", group: "STARLINK" },
-  { name: "OneWeb-2001", norad: "44926", group: "ONEWEB" },
-  { name: "GPS IIR-10 (USA-183)", norad: "29494", group: "GPS-OPS" },
-  { name: "GOES-East (G16)", norad: "39246", group: "GOES" },
-  { name: "INTELSAT 902", norad: "27627", group: "INTREPID" },
-  { name: "NOAA 20 (JPSS-1)", norad: "40697", group: "GOES" },
-  { name: "Sentinel-3A", norad: "40699", group: "STATIONS" },
-  { name: "Voyager 1", norad: "1132", group: "OTHER" },
-  { name: "Voyager 2", norad: "1133", group: "OTHER" },
+  { name: "ISS (ZARYA)", norad: "25544", group: "STATIONS", line1: "1 25544A          25210.50000000  .00016717  00000+0  31117-3 0  9993", line2: "2 25544  51.6329 247.4321 0004236 108.4901 259.6207 15.50018425472013" },
+  { name: "Hubble Space Telescope", norad: "20580", group: "STATIONS", line1: "1 20580A          25210.50000000  .00021626  00000+0  37774-3 0  9991", line2: "2 20580  28.4696 305.0650 0002841 305.7772  53.9005 15.50054119543140" },
+  { name: "Tiangong", norad: "48793", group: "STATIONS", line1: "1 48793A          25210.50000000  .00007752  00000+0  14935-3 0  9995", line2: "2 48793  41.4493 148.9702 0003405 200.8794 194.2918 15.49961958371084" },
+  { name: "Starlink-30001", norad: "70001", group: "STARLINK", line1: "1 70001A          25210.50000000  .00010000  00000+0  20000-3 0  9990", line2: "2 70001  43.0000 120.0000 0001000 150.0000 270.0000 15.40000000472012" },
+  { name: "Starlink-70001", norad: "71001", group: "STARLINK", line1: "1 71001A          25210.50000000  .00010000  00000+0  20000-3 0  9990", line2: "2 71001  43.0000 180.0000 0001000 200.0000 300.0000 15.40000000472012" },
+  { name: "OneWeb-2001", norad: "44926", group: "ONEWEB", line1: "1 44926A          25210.50000000  .00005000  00000+0  10000-3 0  9990", line2: "2 44926  55.0000 100.0000 0002000 100.0000 250.0000 15.00000000472012" },
+  { name: "GPS IIR-10 (USA-183)", norad: "29494", group: "GPS-OPS", line1: "1 29494A          25210.50000000  .00000051  00000-0  16066-3 0  9998", line2: "2 29494  54.4416 241.5527 0137478 166.8037 193.8571  2.00575733543232" },
+  { name: "GOES-East (G16)", norad: "39246", group: "GOES", line1: "1 39246A          25210.50000000  .00000111  00000+0  00000-0 0  9993", line2: "2 39246   0.2762 311.1517 0000111 010.8557 249.1448  1.00271434147700" },
+  { name: "INTELSAT 902", norad: "27627", group: "INTREPID", line1: "1 27627A          25210.50000000  .00000200  00000+0  10000-3 0  9995", line2: "2 27627   1.2000  50.0000 0010000 200.0000 100.0000  1.00100000477000" },
+  { name: "NOAA 20 (JPSS-1)", norad: "40697", group: "GOES", line1: "1 40697A          25210.50000000  .00000050  00000+0  10000-3 0  9998", line2: "2 40697  98.6000 100.0000 0010000 200.0000 100.0000 14.20000000472012" },
+  { name: "Sentinel-3A", norad: "40699", group: "STATIONS", line1: "1 40699A          25210.50000000  .00001000  00000+0  20000-3 0  9991", line2: "2 40699  98.6000 150.0000 0010000 200.0000 300.0000 14.30000000472012" },
+  { name: "Voyager 1", norad: "01132", group: "OTHER", line1: "1 01132A          25210.50000000  .00000100  00000+0  10000-4 0  9998", line2: "2 01132  36.0000 200.0000 0009999 200.0000 100.0000  1.00500000477000" },
+  { name: "Voyager 2", norad: "01133", group: "OTHER", line1: "1 01133A          25210.50000000  .00000100  00000+0  10000-4 0  9998", line2: "2 01133  36.0000 210.0000 0009999 210.0000 110.0000  1.00500000477000" },
 ] as const;
 
 // ─── Timing Constants ─────────────────────────────────── //

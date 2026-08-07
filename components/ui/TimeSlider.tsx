@@ -57,8 +57,8 @@ export default function TimeSlider() {
 
   return (
     <div id="tc">
-      <div className="td" id="td">{displayOffset}</div>
-      <div className="ts" id="ts">Simulated: {displayTime}</div>
+      <div className="td" id="td" suppressHydrationWarning>{displayOffset}</div>
+      <div className="ts" id="ts" suppressHydrationWarning>Simulated: {displayTime}</div>
 
       <input
         type="range"

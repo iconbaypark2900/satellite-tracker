@@ -3,8 +3,8 @@
  * satellite passes for a given observer location.
  */
 
-import { propagateSatellite, eciToGeodetic, getSunPosition } from "@/lib/orbit-utils";
-import { getSunPositionFromDate } from "@/lib/sun-position";
+import { propagateSatellite, eciToGeodetic } from "@/lib/orbit-utils";
+import { getSunPosition, getSunPositionFromDate } from "@/lib/sun-position";
 import { DEG_TO_RAD, RAD_TO_DEG, EARTH_RADIUS_KM } from "@/lib/constants";
 import { PassPrediction, ObserverLocation, TleSet } from "@/types";
 

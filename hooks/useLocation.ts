@@ -7,7 +7,8 @@
 
 import { useEffect } from "react";
 import { useSatelliteStore } from "@/lib/satellite-store";
-import { ObserverLocation, DEFAULT_LOCATIONS } from "@/lib/pass-calculator";
+import { ObserverLocation } from "@/types";
+import { DEFAULT_LOCATIONS } from "@/lib/pass-calculator";
 
 const STORAGE_KEY = "satellite-tracker:observer-location";
 

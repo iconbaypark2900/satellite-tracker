@@ -10,11 +10,34 @@ import { useEffect } from "react";
 import useSWR, { mutate } from "swr";
 import { useSatelliteStore } from "@/lib/satellite-store";
 import { TLE_CACHE_TTL } from "@/lib/constants";
-import { Satellite, TleSet, SatelliteGroup } from "@/types";
+import { Satellite, TleSet, SatelliteGroup, SatelliteOperator } from "@/types";
 import { GROUP_COLORS } from "@/lib/constants";
 import { getGroupColor } from "@/lib/color-utils";
+import { computeOrbitalParams } from "@/lib/orbit-utils";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
+
+/** Build a Satellite object from a TleSet. */
+function buildSatellite(tle: TleSet): Satellite {
+  const group = (tle.group || "OTHER") as SatelliteGroup;
+  const params = computeOrbitalParams(tle);
+  return {
+    noradId: tle.noradId,
+    name: tle.name,
+    tle: tle,
+    group,
+    type: inferType(group),
+    operator: inferOperator(group),
+    period: params.period ?? 0,
+    inclination: params.inclination ?? 0,
+    raan: params.raan ?? 0,
+    apogee: params.apogee ?? 0,
+    perigee: params.perigee ?? 0,
+    altitude: params.altitude ?? 0,
+    color: getGroupColor(group),
+    launchDate: undefined,
+  };
+}
 
 /** Direct fetch fallback — bypasses SWR if it's stuck. */
 async function directFetchTle(): Promise<TleSet[] | null> {
@@ -62,25 +85,7 @@ export function useSatelliteInitializer() {
         tleSets.forEach((tle) => {
           if (tle.noradId && !seenIds.has(tle.noradId)) {
             seenIds.add(tle.noradId);
-            const group = (tle.group || "OTHER") as SatelliteGroup;
-
-            satellites.set(tle.noradId, {
-              noradId: tle.noradId,
-              name: tle.name,
-              tle: tle,
-              group,
-              type: inferType(group),
-              operator: inferOperator(group),
-              country: inferCountry(group),
-              period: 0, // Will be computed from TLE
-              inclination: 0,
-              raan: 0,
-              apogee: 0,
-              perigee: 0,
-              altitude: 0,
-              color: getGroupColor(group),
-              launchDate: undefined,
-            });
+            satellites.set(tle.noradId, buildSatellite(tle));
           }
         });
 
@@ -122,24 +127,7 @@ export function useSatelliteInitializer() {
           tleSets.forEach((tle) => {
             if (tle.noradId && !seenIds.has(tle.noradId)) {
               seenIds.add(tle.noradId);
-              const group = (tle.group || "OTHER") as SatelliteGroup;
-              satellites.set(tle.noradId, {
-                noradId: tle.noradId,
-                name: tle.name,
-                tle: tle,
-                group,
-                type: inferType(group),
-                operator: inferOperator(group),
-                country: inferCountry(group),
-                period: 0,
-                inclination: 0,
-                raan: 0,
-                apogee: 0,
-                perigee: 0,
-                altitude: 0,
-                color: getGroupColor(group),
-                launchDate: undefined,
-              });
+              satellites.set(tle.noradId, buildSatellite(tle));
             }
           });
           store.setSatellites(satellites);
@@ -173,30 +161,16 @@ function inferType(group: SatelliteGroup): string {
   return map[group] ?? "Unknown";
 }
 
-function inferOperator(group: SatelliteGroup): string {
-  const map: Record<SatelliteGroup, string> = {
-    STATIONS: "NASA/ESA/CNSA",
-    STARLINK: "SpaceX",
-    ONEWEB: "OneWeb",
-    "GPS-OPS": "USAF",
-    GOES: "NOAA/NASA",
-    SES: "SES",
-    INTREPID: "Intelsat",
-    OTHER: "Unknown",
+function inferOperator(group: SatelliteGroup): SatelliteOperator {
+  const map: Record<SatelliteGroup, SatelliteOperator> = {
+    STATIONS: { name: "NASA/ESA/CNSA", country: "ISS/China/Russia", abbreviation: "ISS" },
+    STARLINK: { name: "SpaceX", country: "USA" },
+    ONEWEB: { name: "OneWeb", country: "UK/USA" },
+    "GPS-OPS": { name: "USAF", country: "USA" },
+    GOES: { name: "NOAA/NASA", country: "USA" },
+    SES: { name: "SES", country: "Luxembourg" },
+    INTREPID: { name: "Intelsat", country: "Luxembourg" },
+    OTHER: { name: "Unknown", country: "Unknown" },
   };
-  return map[group] ?? "Unknown";
-}
-
-function inferCountry(group: SatelliteGroup): string {
-  const map: Record<SatelliteGroup, string> = {
-    STATIONS: "ISS/China/Russia",
-    STARLINK: "USA",
-    ONEWEB: "UK/USA",
-    "GPS-OPS": "USA",
-    GOES: "USA",
-    SES: "Luxembourg",
-    INTREPID: "Luxembourg",
-    OTHER: "Unknown",
-  };
-  return map[group] ?? "Unknown";
+  return map[group] ?? { name: "Unknown", country: "Unknown" };
 }

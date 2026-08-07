@@ -8,9 +8,9 @@
 
 "use client";
 
-import { useMemo, useRef } from "react";
+import { useMemo } from "react";
 import { useFrame } from "@react-three/fiber";
-import { LineSegments, BufferAttribute, BufferGeometry, Color } from "three";
+import { BufferAttribute, Color } from "three";
 import { propagateSatellite } from "@/lib/orbit-utils";
 import { TleSet } from "@/types";
 import { getGroupColor } from "@/lib/color-utils";
@@ -21,13 +21,7 @@ interface Props {
 }
 
 export default function OrbitPaths({ tles, simTime }: Props) {
-  const groupRef = useRef<any>();
-
   const segments = 96; // points per orbit segment
-
-  useFrame(() => {
-    // Recompute if simTime changed significantly — for now, compute in useMemo below
-  });
 
   const lines = useMemo(() => {
     const points: number[] = [];
@@ -65,17 +59,7 @@ export default function OrbitPaths({ tles, simTime }: Props) {
   if (lines.points.length === 0) return null;
 
   return (
-    <group ref={groupRef}>
-      <bufferGeometry>
-        <bufferAttribute
-          attach="attributes-position"
-          args={[new Float32Array(lines.points), 3]}
-        />
-        <bufferAttribute
-          attach="attributes-color"
-          args={[new Float32Array(lines.colors), 3]}
-        />
-      </bufferGeometry>
+    <group>
       <lineSegments>
         <bufferGeometry attach="geometry">
           <bufferAttribute

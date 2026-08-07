@@ -28,7 +28,7 @@ export default function GroundTracks({ tles, simTime }: Props) {
   const tracks = useMemo(() => {
     const allPoints: number[] = [];
     const allColors: number[] = [];
-    const segmentIndices: number[] = [];
+    const segmentIndices: Array<{ start: number; count: number }> = [];
 
     const stepMin = 8 * 60 / 160; // ±8h window, 160 points
 

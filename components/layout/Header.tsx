@@ -7,14 +7,47 @@
 
 "use client";
 
-import { useSatelliteStore } from "@/lib/satellite-store";
-import { useTleAge } from "@/hooks/useTleData";
+import { useSatelliteStore, useSatellites } from "@/lib/satellite-store";
 import { formatMinutes } from "@/lib/time-utils";
+import { useSunPosition } from "@/hooks/useSunPosition";
+import { useObserver } from "@/lib/satellite-store";
+import { DEG_TO_RAD, RAD_TO_DEG, EARTH_RADIUS_KM } from "@/lib/constants";
 
 export default function Header() {
-  const { timeControl, isLoading, error } = useSatelliteStore();
-  const { data: tleAgeData } = useTleAge();
-  const tleAgeMin = tleAgeData ? tleAgeData / 60 : 0;
+  const satellites = useSatellites();
+  const { timeControl, isLoading, error, tleAge } = useSatelliteStore();
+  const observer = useObserver();
+  const sunPos = useSunPosition();
+
+  // Compute sun elevation at observer location
+  let sunElevation = 0;
+  if (sunPos && observer) {
+    // Sun direction in ECI → convert to topocentric (observer-centric)
+    const obsLat = observer.lat * DEG_TO_RAD;
+    const obsLon = observer.lon * DEG_TO_RAD;
+    const lat = obsLat;
+    const lon = obsLon;
+    // Transform sun ECI direction to local horizon frame
+    const sx = sunPos.eci[0];
+    const sy = sunPos.eci[1];
+    const sz = sunPos.eci[2];
+    // Rotate by observer longitude (around Z) then latitude (around Y)
+    const cosLat = Math.cos(lat);
+    const sinLat = Math.sin(lat);
+    const cosLon = Math.cos(lon);
+    const sinLon = Math.sin(lon);
+    // Convert ECI to local: first undo Earth rotation (not needed for direction only)
+    // Approximate: project sun vector onto local horizon frame
+    const east = -sx * sinLon + sy * cosLon;
+    const north = -sx * cosLon * sinLat - sy * sinLon * sinLat + sz * cosLat;
+    const up = sx * cosLon * cosLat + sy * sinLon * cosLat + sz * sinLat;
+    const horizonDist = Math.sqrt(east * east + north * north + up * up);
+    if (horizonDist > 0) {
+      sunElevation = (Math.asin(up / horizonDist) * RAD_TO_DEG);
+    }
+  }
+
+  const tleAgeMin = isFinite(tleAge) ? tleAge / 60 : 0;
 
   return (
     <header
@@ -58,8 +91,8 @@ export default function Header() {
           color: "#6f6d69",
         }}
       >
-        <span>🛰️ <span style={{ color: "#4a9eff" }}>{useSatelliteStore.getState().satellites.size}</span> tracked</span>
-        <span>🌞 Sun: <span style={{ color: "#4a9eff" }}>--°</span></span>
+        <span>🛰️ <span style={{ color: "#4a9eff" }}>{satellites.size}</span> tracked</span>
+        <span>🌞 Sun: <span style={{ color: "#4a9eff" }}>{Math.round(sunElevation)}°</span></span>
         <span>⏱️ <span style={{ color: "#4a9eff" }}>{formatMinutes(timeControl.offsetMinutes)}</span></span>
         <span>📡 TLE age: <span style={{ color: "#4a9eff" }}>{tleAgeMin.toFixed(1)}m</span></span>
         {isLoading && <span style={{ color: "#4a9eff" }}>⏳ Loading…</span>}

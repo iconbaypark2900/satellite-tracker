@@ -16,8 +16,8 @@ import { unixToJulian } from "@/lib/orbit-utils";
 const SUN_DISTANCE = 1e8; // km (effectively infinite)
 
 export default function SunLighting({ simTime }: { simTime: Date }) {
-  const directionalLightRef = useRef<any>();
-  const ambientLightRef = useRef<any>();
+  const directionalLightRef = useRef<any>(null);
+  const ambientLightRef = useRef<any>(null);
 
   const sunPos = useMemo(() => getSunPositionFromDate(simTime), [simTime]);
 

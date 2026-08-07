@@ -14,7 +14,8 @@
  *   { type: "results", positions: Map<string, PropagationResult> }
  */
 
-import { propagateSatellite, getSunPosition, dateToJulian } from "@/lib/orbit-utils";
+import { propagateSatellite, dateToJulian } from "@/lib/orbit-utils";
+import { getSunPosition } from "@/lib/sun-position";
 import { TleSet, PropagationResult } from "@/types";
 
 // Worker context type (TypeScript needs this for WebWorker scripts)

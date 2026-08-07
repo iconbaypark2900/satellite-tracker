@@ -18,6 +18,7 @@ import TimeSlider from "@/components/ui/TimeSlider";
 import ConstellationFilter from "@/components/ui/ConstellationFilter";
 import { useSatelliteInitializer } from "@/hooks/useSatelliteInitializer";
 import { useSatelliteStore } from "@/lib/satellite-store";
+import { computeOrbitalParams } from "@/lib/orbit-utils";
 
 // Dynamically import GlobeScene (heavy Three.js bundle, client-only)
 const GlobeScene = dynamic(() => import("@/components/globe/GlobeScene"), {
@@ -36,8 +37,10 @@ export default function GlobePage() {
       <Header />
 
       {/* 3D Globe Canvas (full viewport) */}
-      <div className="absolute inset-0 pt-14 pb-10">
-        <GlobeScene />
+      <div style={{ position: 'absolute', top: '56px', left: 0, right: 0, bottom: 0, height: 'calc(100vh - 96px)' }}>
+        <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+          <GlobeScene />
+        </div>
       </div>
 
       {/* Sidebar */}

@@ -16,7 +16,73 @@ import {
   ORBIT_PATH_SEGMENTS,
   EARTH_MEAN_RADIUS_KM,
 } from "@/lib/constants";
-import { PropagationResult, TleSet } from "@/types";
+import { PropagationResult, TleSet, Satellite } from "@/types";
+
+// ─── TLE Parsing & Orbital Parameter Extraction ────────────────────────── //
+
+/**
+ * Parse a TLE line 2 to extract orbital elements.
+ * TLE line 2 format (0-indexed columns):
+ *   0-1:  Line number ("2 ")
+ *   2-6:  NORAD catalog number
+ *   7-14: Inclination (degrees)
+ *   15-22: RAAN (degrees)
+ *   23-32: Eccentricity (no leading "0.")
+ *   33-42: Argument of perigee (degrees)
+ *   43-52: Mean anomaly (degrees)
+ *   53-62: Mean motion (rev/day)
+ */
+export function parseTleElements(line2: string): {
+  inclination: number;
+  raan: number;
+  eccentricity: number;
+  argOfPerigee: number;
+  meanAnomaly: number;
+  meanMotion: number;
+} | null {
+  if (!line2 || !line2.startsWith("2 ")) return null;
+  try {
+    const inclination = parseFloat(line2.substring(8, 16).trim());
+    const raan = parseFloat(line2.substring(17, 25).trim());
+    const eccentricity = parseFloat("0." + line2.substring(26, 34).trim());
+    const argOfPerigee = parseFloat(line2.substring(34, 42).trim());
+    const meanAnomaly = parseFloat(line2.substring(43, 52).trim());
+    const meanMotion = parseFloat(line2.substring(52, 63).trim());
+    return { inclination, raan, eccentricity, argOfPerigee, meanAnomaly, meanMotion };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Compute orbital parameters (period, apogee, perigee, altitude)
+ * from a TLE and update a satellite's metadata.
+ */
+export function computeOrbitalParams(tle: TleSet): Partial<Satellite> {
+  const elements = parseTleElements(tle.line2);
+  if (!elements) return {};
+
+  const { inclination, raan, eccentricity, meanMotion } = elements;
+  const period = meanMotion > 0 ? 1440 / meanMotion : 0; // minutes
+
+  // Semi-major axis from period: a = (mu * (T/2pi)^2)^(1/3)
+  const periodSec = period * 60;
+  const a = Math.cbrt((EARTH_MU * periodSec * periodSec) / (4 * Math.PI * Math.PI));
+
+  // Apogee and perigee (altitude above Earth surface)
+  const apogee = a * (1 + eccentricity) - EARTH_MEAN_RADIUS_KM;
+  const perigee = a * (1 - eccentricity) - EARTH_MEAN_RADIUS_KM;
+  const altitude = (apogee + perigee) / 2;
+
+  return {
+    period,
+    inclination,
+    raan,
+    apogee: Math.round(apogee),
+    perigee: Math.round(perigee),
+    altitude: Math.round(altitude),
+  };
+}
 
 // ─── ECI / ECEF Conversion ───────────────────────────── //
 
@@ -91,15 +157,23 @@ export function propagateSatellite(
   }
 
   try {
-    // satellite.js v6: twoline2satrec(line1, line2, name?)
-    const satRec = satellite.twoline2satrec(tle.line1, tle.line2, tle.name);
+    // satellite.js v6: twoline2satrec(line1, line2)
+    const satRec = satellite.twoline2satrec(tle.line1, tle.line2);
 
-    const result = satellite.propagate(satRec, date) as {
-      position: number[] | undefined;
-      velocity: number[] | undefined;
-    };
+    const result = satellite.propagate(satRec, date);
+    if (!result || !result.position || !result.velocity) {
+      return {
+        position: [0, 0, 0],
+        velocity: [0, 0, 0],
+        isValid: false,
+      };
+    }
 
-    if (!result.position || !result.velocity) {
+    const pos = result.position as { x: number | null; y: number | null; z: number | null };
+    const vel = result.velocity as { x: number | null; y: number | null; z: number | null };
+
+    if (!pos || !vel || pos.x === null || pos.y === null || pos.z === null ||
+        vel.x === null || vel.y === null || vel.z === null) {
       return {
         position: [0, 0, 0],
         velocity: [0, 0, 0],
@@ -108,8 +182,8 @@ export function propagateSatellite(
     }
 
     return {
-      position: result.position as [number, number, number],
-      velocity: result.velocity as [number, number, number],
+      position: [pos.x, pos.y, pos.z],
+      velocity: [vel.x, vel.y, vel.z],
       isValid: true,
     };
   } catch {
@@ -201,8 +275,11 @@ export function eciToGeodetic(
     const jd = dateToJulian(date);
     // satellite.js: gstime(jd) → GMST in radians
     const gmst = satellite.gstime(jd);
-    // satellite.js: eciToGeodetic(eciPosition, gmst) → {latitude, longitude, height}
-    const result = satellite.eciToGeodetic(position, gmst);
+    // satellite.js requires EciVec3 (object) not a tuple
+    const result = satellite.eciToGeodetic(
+      { x: position[0], y: position[1], z: position[2] },
+      gmst
+    );
 
     return {
       latitude: result.latitude * RAD_TO_DEG,

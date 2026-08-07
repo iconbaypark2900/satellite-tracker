@@ -41,11 +41,11 @@ export default function SatelliteDetail() {
 
   const fields = [
     { label: "Name", value: sat.name },
-    { label: "Operator", value: sat.operator },
+    { label: "Operator", value: sat.operator?.name ?? "—" },
     { label: "Type", value: sat.type },
     { label: "NORAD ID", value: sat.noradId },
     { label: "Launch", value: sat.launchDate ?? "—" },
-    { label: "Country", value: sat.country },
+    { label: "Country", value: sat.operator?.country ?? "—" },
     { label: "Orbit", value: oType },
     { label: "Period", value: `${sat.period.toFixed(1)} min` },
     { label: "Inclination", value: `${sat.inclination}°` },

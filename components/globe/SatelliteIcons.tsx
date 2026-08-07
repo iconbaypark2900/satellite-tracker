@@ -3,21 +3,16 @@
  * for performance (single draw call for all satellites).
  *
  * Each satellite is rendered as a small glowing sphere with its group color.
- * Clicking selects the satellite. Visible only on the daylight side.
  */
 
 "use client";
 
-import { useMemo, useRef, useCallback } from "react";
-import { useFrame, extend } from "@react-three/fiber";
+import { useMemo, useRef, useCallback, useLayoutEffect } from "react";
+import { useFrame } from "@react-three/fiber";
 import { InstancedMesh, Object3D, Color, InstancedBufferAttribute } from "three";
 import { propagateSatellite } from "@/lib/orbit-utils";
 import { TleSet, Satellite } from "@/types";
 import { getGroupColor } from "@/lib/color-utils";
-
-// R3F needs explicit registration for InstanceColor since three.js v165
-// does not expose it as a constructor in the global namespace.
-extend({ InstanceColor: InstancedBufferAttribute });
 
 const DUMMY = new Object3D();
 
@@ -40,7 +35,7 @@ export default function SatelliteIcons({ tles, simTime, selectedNorad, onSelect 
     });
   }, [tles]);
 
-  // Instance colors attribute
+  // Instance colors attribute (Float32Array for GPU)
   const instanceColors = useMemo(() => {
     const arr = new Float32Array(count * 3);
     colors.forEach((c, i) => {
@@ -50,6 +45,12 @@ export default function SatelliteIcons({ tles, simTime, selectedNorad, onSelect 
     });
     return arr;
   }, [colors, count]);
+
+  // Set instance colors on the instanced mesh (avoids TS issues with JSX element)
+  useLayoutEffect(() => {
+    if (!meshRef.current) return;
+    meshRef.current.instanceColor = new InstancedBufferAttribute(instanceColors, 3);
+  }, [instanceColors]);
 
   // Update positions every frame
   useFrame(() => {
@@ -77,15 +78,6 @@ export default function SatelliteIcons({ tles, simTime, selectedNorad, onSelect 
     meshRef.current.instanceMatrix.needsUpdate = true;
   });
 
-  // Handle clicks
-  const handlePointerDown = useCallback(
-    (e: any) => {
-      // This is simplified; a full implementation would raycast
-      // to find the clicked satellite instance
-    },
-    []
-  );
-
   if (count === 0) return null;
 
   return (
@@ -93,11 +85,9 @@ export default function SatelliteIcons({ tles, simTime, selectedNorad, onSelect 
       ref={meshRef}
       count={count}
       args={[undefined, undefined, count]}
-      onPointerDown={handlePointerDown}
     >
       <sphereGeometry args={[3, 16, 16]} />
       <meshBasicMaterial toneMapped={false} />
-      <instanceColor args={[instanceColors, 3]} attach="instanceColor" />
     </instancedMesh>
   );
 }

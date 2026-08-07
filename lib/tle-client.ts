@@ -134,6 +134,7 @@ export async function fetchTleForGroup(
 export async function fetchAllTles(signal?: AbortSignal): Promise<TleSet[]> {
   const groups: SatelliteGroup[] = [
     "STATIONS", "STARLINK", "ONEWEB", "GPS-OPS", "GOES",
+    "SES", "INTREPID", "OTHER",
   ];
 
   // Fetch all groups in parallel for speed
@@ -155,14 +156,16 @@ export async function fetchAllTles(signal?: AbortSignal): Promise<TleSet[]> {
   // If all groups failed, fall back to default satellite list
   if (allTles.length === 0 && errors.length === groups.length) {
     console.warn("All Celestrak TLE fetches failed, using default satellite list");
-    return DEFAULT_SATELLITES.map((s) => ({
-      name: s.name,
-      noradId: s.norad,
-      line1: "",
-      line2: "",
-      epoch: "",
-      group: s.group as SatelliteGroup,
-    }));
+    return DEFAULT_SATELLITES
+      .filter((s) => groups.includes(s.group as SatelliteGroup))
+      .map((s) => ({
+        name: s.name,
+        noradId: s.norad,
+        line1: s.line1 ?? "",
+        line2: s.line2 ?? "",
+        epoch: "",
+        group: s.group as SatelliteGroup,
+      }));
   }
 
   if (errors.length > 0) {
