@@ -15,10 +15,22 @@ import LocationInput from "@/components/ui/LocationInput";
 import PassPredictionCard from "@/components/ui/PassPredictionCard";
 import { useSatelliteStore } from "@/lib/satellite-store";
 import { useSatelliteInitializer } from "@/hooks/useSatelliteInitializer";
+import { usePassPredictions } from "@/hooks/usePassPredictions";
 
 export default function PassesPage() {
   useSatelliteInitializer();
-  const { selectedSatellite, error } = useSatelliteStore();
+  const selectedSatellite = useSatelliteStore((s) => s.selectedSatellite);
+  const error = useSatelliteStore((s) => s.error);
+  const observer = useSatelliteStore((s) => s.observer);
+  const {
+    passes,
+    nextVisible,
+    isLoading,
+    error: passError,
+    mutate,
+  } = usePassPredictions(selectedSatellite);
+
+  const neverSetsPass = passes.find((p) => p.neverSets);
 
   return (
     <main className="relative h-screen w-full">
@@ -38,24 +50,65 @@ export default function PassesPage() {
           {selectedSatellite ? (
             <div className="mb-4">
               <h2 className="text-sm text-[#6f6d69] mb-2">
-                Passes for {selectedSatellite.name} ({selectedSatellite.noradId})
+                Passes for {selectedSatellite.name} ({selectedSatellite.noradId}) over{" "}
+                {observer.label} — next 24h
               </h2>
-              <div id="passes-list">
-                <PassPredictionCard
-                  pass={{
-                    startTime: new Date(),
-                    maxTime: new Date(Date.now() + 30 * 60000),
-                    endTime: new Date(Date.now() + 60 * 60000),
-                    maxElevation: 45,
-                    startAz: 90,
-                    maxAz: 180,
-                    endAz: 270,
-                    isLit: true,
-                    magnitude: -1.5,
-                  }}
-                  satelliteName={selectedSatellite.name}
-                />
-              </div>
+
+              {isLoading && (
+                <p className="text-sm text-[#6f6d69]">⏳ Computing passes…</p>
+              )}
+
+              {passError && (
+                <div className="text-sm text-[#ff80ab] mb-2">
+                  Failed to compute passes.{" "}
+                  <button
+                    className="underline text-[#4a9eff]"
+                    onClick={() => mutate()}
+                  >
+                    Retry
+                  </button>
+                </div>
+              )}
+
+              {!isLoading && !passError && neverSetsPass && (
+                <div className="mb-3 p-3 rounded border border-[#4a9eff]/40 bg-[#4a9eff]/10 text-sm">
+                  🛰️ {selectedSatellite.name} is above the horizon from{" "}
+                  {observer.label} for the entire day (elevation{" "}
+                  {neverSetsPass.maxElevation.toFixed(0)}°) — typical for a
+                  geostationary satellite. There are no rise/set passes to list.
+                </div>
+              )}
+
+              {!isLoading && !passError && !neverSetsPass && passes.length === 0 && (
+                <p className="text-sm text-[#6f6d69]">
+                  No passes above 10° elevation in the next 24 hours from{" "}
+                  {observer.label}.
+                </p>
+              )}
+
+              {!isLoading && !passError && !neverSetsPass && passes.length > 0 && (
+                <div id="passes-list" className="flex flex-col gap-2">
+                  {nextVisible?.isVisible && (
+                    <div className="p-2 rounded border border-[#8aff8a]/40 bg-[#8aff8a]/10 text-xs">
+                      👁️ Next visible pass:{" "}
+                      {nextVisible.startTime.toLocaleString(undefined, {
+                        weekday: "short",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}{" "}
+                      — max elevation {nextVisible.maxElevation.toFixed(0)}°,
+                      magnitude {nextVisible.magnitude.toFixed(1)}
+                    </div>
+                  )}
+                  {passes.map((pass) => (
+                    <PassPredictionCard
+                      key={pass.startTime.getTime()}
+                      pass={pass}
+                      satelliteName={selectedSatellite.name}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
           ) : (
             <p className="text-[#6f6d69] text-sm mb-4">

@@ -1,58 +1,44 @@
 /**
- * usePassPredictions — Fetch and compute satellite pass predictions
- * for the observer's location.
+ * usePassPredictions — Compute satellite pass predictions for the
+ * observer's location.
+ *
+ * Runs client-side: with cached satrecs a 24h scan is a few milliseconds,
+ * and the TLEs in the store are exactly what the globe renders. The
+ * POST /api/passes route remains for non-UI consumers.
  */
 
 import useSWR from "swr";
-import { predictPasses, getNextVisiblePass } from "@/lib/pass-calculator";
+import { predictPasses } from "@/lib/pass-calculator";
 import { useSatelliteStore } from "@/lib/satellite-store";
 import { Satellite, PassPrediction, ObserverLocation } from "@/types";
 
-export function usePassPredictions(
-  satellite: Satellite | null,
-  hours: number = 24
-) {
+export function usePassPredictions(satellite: Satellite | null, hours: number = 24) {
   const observer = useSatelliteStore((s) => s.observer);
 
-  return useSWR<PassPrediction[]>(
-    satellite && satellite.tle
+  const { data, error, isLoading, mutate } = useSWR<PassPrediction[]>(
+    satellite?.tle
       ? ["passes", satellite.noradId, observer.lat, observer.lon, hours]
       : null,
     async () => {
-      if (!satellite || !satellite.tle) return [];
-      return predictPasses(
-        satellite.tle,
-        observer,
-        new Date(),
-        hours,
-        10
-      );
+      if (!satellite?.tle) return [];
+      return predictPasses(satellite.tle, observer, new Date(), hours);
     },
     {
       revalidateOnFocus: false,
       dedupingInterval: 300000, // 5 min
     }
   );
-}
 
-export function useNextVisiblePass(
-  satellite: Satellite | null
-) {
-  const observer = useSatelliteStore((s) => s.observer);
-
-  return useSWR<PassPrediction | null>(
-    satellite && satellite.tle
-      ? ["next-visible-pass", satellite.noradId, observer.lat, observer.lon]
-      : null,
-    async () => {
-      if (!satellite || !satellite.tle) return null;
-      return getNextVisiblePass(satellite.tle, observer, new Date());
-    },
-    {
-      refreshInterval: 60000, // 1 min
-      revalidateOnFocus: false,
-    }
-  );
+  const passes = data ?? [];
+  return {
+    passes,
+    count: passes.length,
+    /** First actually-watchable pass (sunlit sat, dark sky), else first pass. */
+    nextVisible: passes.find((p) => p.isVisible) ?? passes[0] ?? null,
+    isLoading,
+    error,
+    mutate,
+  };
 }
 
 export function useObserver(): ObserverLocation {

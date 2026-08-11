@@ -7,13 +7,22 @@
 
 "use client";
 
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useSatelliteStore, useSatellites } from "@/lib/satellite-store";
 import { formatMinutes } from "@/lib/time-utils";
 import { useSunPosition } from "@/hooks/useSunPosition";
 import { useObserver } from "@/lib/satellite-store";
 import { DEG_TO_RAD, RAD_TO_DEG, EARTH_RADIUS_KM } from "@/lib/constants";
 
+const NAV_LINKS = [
+  { href: "/globe", label: "🌍 Globe" },
+  { href: "/sky", label: "🔭 Sky" },
+  { href: "/passes", label: "📅 Passes" },
+];
+
 export default function Header() {
+  const pathname = usePathname();
   const satellites = useSatellites();
   const { timeControl, isLoading, error, tleAge } = useSatelliteStore();
   const observer = useObserver();
@@ -67,8 +76,10 @@ export default function Header() {
       }}
     >
       <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
-        <h1 style={{ fontSize: "1.1rem", color: "#4137ff", margin: 0 }}>
-          🛰️ Satellite Tracker
+        <h1 style={{ fontSize: "1.1rem", margin: 0 }}>
+          <Link href="/globe" style={{ color: "#4137ff", textDecoration: "none" }}>
+            🛰️ Satellite Tracker
+          </Link>
         </h1>
         {error && (
           <span style={{ color: "#ff80ab", fontSize: "0.7rem" }}>
@@ -76,6 +87,31 @@ export default function Header() {
           </span>
         )}
       </div>
+
+      {/* View navigation */}
+      <nav style={{ display: "flex", alignItems: "center", gap: "0.25rem" }}>
+        {NAV_LINKS.map(({ href, label }) => {
+          const active = pathname === href;
+          return (
+            <Link
+              key={href}
+              href={href}
+              style={{
+                padding: "0.35rem 0.9rem",
+                fontSize: "0.75rem",
+                textDecoration: "none",
+                color: active ? "#4a9eff" : "#6f6d69",
+                borderBottom: active
+                  ? "2px solid #4a9eff"
+                  : "2px solid transparent",
+                fontWeight: active ? 600 : 400,
+              }}
+            >
+              {label}
+            </Link>
+          );
+        })}
+      </nav>
 
       <div
         id="sb-stats"

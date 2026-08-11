@@ -12,24 +12,14 @@ import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import Sidebar from "@/components/ui/Sidebar";
 import TimeSlider from "@/components/ui/TimeSlider";
+import SkyView from "@/components/sky/SkyView";
 import { useSatelliteStore } from "@/lib/satellite-store";
 import { useSatelliteInitializer } from "@/hooks/useSatelliteInitializer";
-import { useSunPosition } from "@/hooks/useSunPosition";
-import { Satellite } from "@/types";
-import { SunPosition } from "@/lib/sun-position";
-
-interface SkyCanvasProps {
-  satellites: Satellite[];
-  sun: SunPosition | null;
-}
 
 export default function SkyPage() {
   useSatelliteInitializer();
-  const { error } = useSatelliteStore();
-  const sun = useSunPosition();
-
-  const { getVisibleSatellites } = useSatelliteStore();
-  const visibleSats = getVisibleSatellites().filter((s) => s.tle);
+  const error = useSatelliteStore((s) => s.error);
+  const observer = useSatelliteStore((s) => s.observer);
 
   return (
     <main className="relative h-screen w-full">
@@ -37,20 +27,10 @@ export default function SkyPage() {
 
       {/* Celestial sphere view */}
       <div className="absolute top-14 left-0 right-80 bottom-20 flex items-center justify-center">
-        <div className="relative w-full max-w-3xl h-full">
-          {/* Celestial sphere canvas (placeholder) */}
-          <div
-            className="w-full h-full rounded-full border border-[#222] relative overflow-hidden"
-            style={{
-              background:
-                "radial-gradient(circle, #0a2040 0%, #05051a 100%)",
-            }}
-          >
-            <SkyCanvas satellites={visibleSats} sun={sun} />
-          </div>
-
+        <div className="relative w-full h-full">
+          <SkyView />
           <div className="absolute top-2 left-2 text-xs text-[#6f6d69]">
-            Alt/Az View
+            Alt/Az View — looking up from {observer.label}
           </div>
         </div>
       </div>
@@ -78,16 +58,5 @@ export default function SkyPage() {
         </div>
       )}
     </main>
-  );
-}
-
-/** Placeholder for the celestial sphere canvas. */
-function SkyCanvas({ satellites, sun }: SkyCanvasProps) {
-  return (
-    <div className="w-full h-full flex items-center justify-center">
-      <p className="text-[#6f6d69] text-sm">
-        Celestial sphere view (coming soon — altitude/azimuth projection)
-      </p>
-    </div>
   );
 }
