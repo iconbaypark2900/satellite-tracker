@@ -13,6 +13,7 @@ export default {
         "primary-dark": "#2a25a3",
         space: "#05051a",
         "space-panel": "rgba(10,10,20,0.92)",
+        "space-border": "#222233",
         "satellite-gold": "#ffd700",
         "satellite-orange": "#ffa726",
         "satellite-blue": "#4a9eff",
@@ -21,6 +22,8 @@ export default {
         "satellite-pink": "#ff80ab",
         "text-primary": "#e0e0ff",
         "text-secondary": "#6f6d69",
+        // Convenience aliases
+        "text-muted": "#6f6d69",
       },
       fontFamily: {
         mono: ["'Monaco'", "monospace"],

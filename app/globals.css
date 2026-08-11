@@ -1,10 +1,9 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
+@import "tailwindcss";
 @import "../styles/globals.css";
 @import "../styles/animations.css";
 @import "../styles/satellite-colors.css";
+
+@config "../tailwind.config.js";
 
 :root {
   --color-primary: #4137ff;
