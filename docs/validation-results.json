@@ -1,0 +1,155 @@
+{
+  "generatedAt": "2026-08-11T01:03:13.499Z",
+  "satellite": "ISS (25544)",
+  "tleEpoch": "2026-08-10T12:06:16.697Z",
+  "tleSource": "AMSAT/r4uab mirror snapshot",
+  "reference": "JPL Horizons observer table (-125544), airless apparent az/el, 1-min steps",
+  "site": {
+    "lat": 40.7128,
+    "lon": -74.006,
+    "alt": 0.01,
+    "label": "New York, NY, USA"
+  },
+  "windowHours": 48,
+  "samples": 2881,
+  "angularErrorDeg": {
+    "allSky": {
+      "n": 2881,
+      "median": 0.0052244227454304164,
+      "p95": 0.018120953701145207,
+      "max": 0.15820488894990245
+    },
+    "above10El": {
+      "n": 63,
+      "median": 0.03938046618269246,
+      "p95": 0.10253074014418782,
+      "max": 0.15820488894990245
+    }
+  },
+  "rangeErrorKmAbove10El": {
+    "n": 63,
+    "median": 0.36256423377994906,
+    "p95": 1.3436631678687263,
+    "max": 1.6194051562629284
+  },
+  "culminations": {
+    "matched": 12,
+    "horizonsTotal": 12,
+    "deltaTcaSec": {
+      "n": 12,
+      "median": 0,
+      "p95": 0,
+      "max": 0
+    },
+    "deltaPeakElDeg": {
+      "n": 12,
+      "median": 0.006054101495198694,
+      "p95": 0.05834120163018497,
+      "max": 0.05834120163018497
+    },
+    "detail": [
+      {
+        "horizonsTcaUtc": "2026-08-10T12:20:00.000Z",
+        "deltaTcaSec": 0,
+        "horizonsPeakEl": 62.952284,
+        "deltaPeakElDeg": -0.01375345134022865
+      },
+      {
+        "horizonsTcaUtc": "2026-08-10T13:57:00.000Z",
+        "deltaTcaSec": 0,
+        "horizonsPeakEl": 22.386859,
+        "deltaPeakElDeg": -0.0008401496566712296
+      },
+      {
+        "horizonsTcaUtc": "2026-08-10T15:35:00.000Z",
+        "deltaTcaSec": 0,
+        "horizonsPeakEl": 12.755884,
+        "deltaPeakElDeg": -0.0000611823352549834
+      },
+      {
+        "horizonsTcaUtc": "2026-08-10T17:13:00.000Z",
+        "deltaTcaSec": 0,
+        "horizonsPeakEl": 19.388755,
+        "deltaPeakElDeg": 0.0011494554288589143
+      },
+      {
+        "horizonsTcaUtc": "2026-08-10T18:50:00.000Z",
+        "deltaTcaSec": 0,
+        "horizonsPeakEl": 76.363303,
+        "deltaPeakElDeg": 0.05834120163018497
+      },
+      {
+        "horizonsTcaUtc": "2026-08-11T11:32:00.000Z",
+        "deltaTcaSec": 0,
+        "horizonsPeakEl": 33.859537,
+        "deltaPeakElDeg": -0.018117259753637427
+      },
+      {
+        "horizonsTcaUtc": "2026-08-11T13:09:00.000Z",
+        "deltaTcaSec": 0,
+        "horizonsPeakEl": 30.222256,
+        "deltaPeakElDeg": -0.006054101495198694
+      },
+      {
+        "horizonsTcaUtc": "2026-08-11T14:47:00.000Z",
+        "deltaTcaSec": 0,
+        "horizonsPeakEl": 13.349159,
+        "deltaPeakElDeg": 0.0014801995940114665
+      },
+      {
+        "horizonsTcaUtc": "2026-08-11T16:25:00.000Z",
+        "deltaTcaSec": 0,
+        "horizonsPeakEl": 15.84039,
+        "deltaPeakElDeg": 0.004067071228647023
+      },
+      {
+        "horizonsTcaUtc": "2026-08-11T18:02:00.000Z",
+        "deltaTcaSec": 0,
+        "horizonsPeakEl": 55.439525,
+        "deltaPeakElDeg": 0.014298653197663214
+      },
+      {
+        "horizonsTcaUtc": "2026-08-11T19:38:00.000Z",
+        "deltaTcaSec": 0,
+        "horizonsPeakEl": 16.368681,
+        "deltaPeakElDeg": -0.005279084386067723
+      },
+      {
+        "horizonsTcaUtc": "2026-08-12T10:45:00.000Z",
+        "deltaTcaSec": 0,
+        "horizonsPeakEl": 20.098597,
+        "deltaPeakElDeg": 0.009570527525621486
+      }
+    ]
+  },
+  "errorVsHorizon": [
+    {
+      "horizon": "0-12h",
+      "n": 27,
+      "median": 0.01564453366565136,
+      "p95": 0.03938046618269246,
+      "max": 0.059529093684814155
+    },
+    {
+      "horizon": "12-24h",
+      "n": 6,
+      "median": 0.05610110081861805,
+      "p95": 0.08996884659440878,
+      "max": 0.08996884659440878
+    },
+    {
+      "horizon": "24-36h",
+      "n": 25,
+      "median": 0.0539035250692124,
+      "p95": 0.09981484847819715,
+      "max": 0.15820488894990245
+    },
+    {
+      "horizon": "36-48h",
+      "n": 5,
+      "median": 0.10253074014418782,
+      "p95": 0.13311637221550465,
+      "max": 0.13311637221550465
+    }
+  ]
+}

@@ -3,6 +3,7 @@ import {
   eciToGeodetic,
   parseIntlDesignator,
   computeOrbitalParams,
+  tleEpochToDate,
 } from "@/lib/orbit-utils";
 import { ISS, GOES_16, FIXTURE_START } from "../fixtures/tles";
 
@@ -61,5 +62,26 @@ describe("computeOrbitalParams", () => {
     expect(params.inclination).toBeCloseTo(51.63, 1);
     expect(params.altitude).toBeGreaterThan(350);
     expect(params.altitude).toBeLessThan(460);
+  });
+});
+
+describe("tleEpochToDate", () => {
+  it("parses the ISS fixture epoch", () => {
+    const d = tleEpochToDate("26222.18186727");
+    expect(d).not.toBeNull();
+    expect(d!.toISOString().startsWith("2026-08-10T04:21")).toBe(true);
+  });
+
+  it("treats years >= 57 as 19xx", () => {
+    const d = tleEpochToDate("58001.00000000");
+    expect(d!.getUTCFullYear()).toBe(1958);
+    expect(d!.getUTCMonth()).toBe(0);
+    expect(d!.getUTCDate()).toBe(1);
+  });
+
+  it("returns null for malformed input", () => {
+    expect(tleEpochToDate("")).toBeNull();
+    expect(tleEpochToDate("garbage")).toBeNull();
+    expect(tleEpochToDate("26999.5")).toBeNull();
   });
 });

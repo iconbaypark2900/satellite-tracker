@@ -12,7 +12,8 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "textures": "tsx scripts/download-textures.ts",
-    "cache:tle": "tsx scripts/generate-tle-cache.ts"
+    "cache:tle": "tsx scripts/generate-tle-cache.ts",
+    "validate": "tsx scripts/validate-vs-horizons.ts"
   },
   "repository": {
     "type": "git",

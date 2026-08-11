@@ -99,6 +99,21 @@ satellite-tracker/
 
 ---
 
+## ✅ Validated Accuracy
+
+Predictions are validated against **JPL Horizons** (see
+[`docs/VALIDATION.md`](docs/VALIDATION.md) for methodology and
+limitations — reproduce with `pnpm validate`):
+
+- Topocentric ISS predictions agree with Horizons to a **median 0.005°
+  all-sky / 0.039° during passes** over 48h (≈ 1/10 of a Moon-width)
+- Slant range agrees to **0.4 km median** (inside SGP4's 1-3 km envelope)
+- **12/12 pass culminations** matched within the 1-minute sampling grid
+- Documented error growth vs TLE age; per-satellite TLE epoch age is
+  surfaced in the UI
+
+---
+
 ## 🔭 Data Sources
 
 | Source | Purpose |

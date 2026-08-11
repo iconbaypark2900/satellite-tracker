@@ -9,7 +9,7 @@
 
 import { useSatelliteStore } from "@/lib/satellite-store";
 import { Satellite } from "@/types";
-import { orbitalVelocity, orbitType } from "@/lib/orbit-utils";
+import { orbitalVelocity, orbitType, tleEpochToDate } from "@/lib/orbit-utils";
 import { GROUP_COLORS } from "@/lib/constants";
 import { useSatCatRecord } from "@/hooks/useSatCatData";
 
@@ -52,6 +52,27 @@ export default function SatelliteDetail() {
     { label: "Perigee", value: `${sat.perigee} km` },
   ];
 
+  // Data provenance: TLE epoch age (amber >3d, red >7d — SGP4 error
+  // grows roughly 1-3 km/day past epoch)
+  const epochDate = sat.tle ? tleEpochToDate(sat.tle.epoch) : null;
+  const tleAgeDays = epochDate
+    ? (Date.now() - epochDate.getTime()) / 86400000
+    : null;
+  const tleAgeColor =
+    tleAgeDays === null
+      ? undefined
+      : tleAgeDays > 7
+        ? "#ff80ab"
+        : tleAgeDays > 3
+          ? "#ffa726"
+          : "#8aff8a";
+  if (tleAgeDays !== null) {
+    fields.push({
+      label: "TLE epoch",
+      value: `${tleAgeDays.toFixed(1)} d ago`,
+    });
+  }
+
   return (
     <div className="dp">
       <div className="flex items-center gap-2 mb-1">
@@ -71,7 +92,12 @@ export default function SatelliteDetail() {
         {fields.map((f) => (
           <div key={f.label} className="dr">
             <span className="lab">{f.label}</span>
-            <span className="val">{f.value}</span>
+            <span
+              className="val"
+              style={f.label === "TLE epoch" ? { color: tleAgeColor } : undefined}
+            >
+              {f.value}
+            </span>
           </div>
         ))}
       </div>

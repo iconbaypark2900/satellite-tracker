@@ -75,6 +75,20 @@ export function parseIntlDesignator(
 }
 
 /**
+ * Convert a TLE epoch field ("YYDDD.DDDDDDDD") to a Date.
+ * Years ≥ 57 are 19xx, otherwise 20xx (same convention as designators).
+ */
+export function tleEpochToDate(epoch: string): Date | null {
+  const m = epoch?.trim().match(/^(\d{2})(\d{3}(?:\.\d+)?)$/);
+  if (!m) return null;
+  const yy = parseInt(m[1], 10);
+  const year = yy >= 57 ? 1900 + yy : 2000 + yy;
+  const dayOfYear = parseFloat(m[2]);
+  if (dayOfYear < 1 || dayOfYear >= 367) return null;
+  return new Date(Date.UTC(year, 0, 1) + (dayOfYear - 1) * 86400000);
+}
+
+/**
  * Compute orbital parameters (period, apogee, perigee, altitude)
  * from a TLE and update a satellite's metadata.
  */
