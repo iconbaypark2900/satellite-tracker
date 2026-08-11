@@ -81,7 +81,13 @@ export default function GlobeScene() {
 
   return (
     <Canvas
-      camera={{ position: [0, 0, EARTH_RADIUS * 2.5], fov: 45, near: 10, far: 150000 }}
+      camera={{
+        // Scene Z is the polar axis — view from above the equator, mid-latitude
+        position: [EARTH_RADIUS * 2.1, -EARTH_RADIUS * 0.9, EARTH_RADIUS * 0.9],
+        fov: 45,
+        near: 10,
+        far: 150000,
+      }}
       gl={{ antialias: true, alpha: false, preserveDrawingBuffer: false }}
     >
       {/* Lighting & Environment */}

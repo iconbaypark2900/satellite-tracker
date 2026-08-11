@@ -1,50 +1,99 @@
 /**
- * Earth.tsx — Render Earth as a sphere with atmospheric glow,
- * grid lines, day/night terminator, and procedurally-generated
- * surface texture (no external downloads required).
+ * Earth.tsx — Render Earth with real NASA textures: a day/night shader
+ * (Blue Marble day map, city-lights night map, soft terminator mix),
+ * fresnel atmosphere, and lat/lon grid.
+ *
+ * The textured sphere lives inside <EcefFrame> so geography rotates with
+ * GMST and stays aligned with the ECI satellite positions. Falls back to
+ * the original procedural texture when the downloaded textures are absent.
  */
 
 "use client";
 
 import {
-  MeshStandardMaterial,
   MeshBasicMaterial,
   CanvasTexture,
   Color,
   BackSide,
   AdditiveBlending,
-  NearestFilter,
+  ShaderMaterial,
+  Texture,
+  TextureLoader,
+  SRGBColorSpace,
+  Vector3,
 } from "three";
-import { useMemo, useRef, useEffect, useCallback } from "react";
+import { useMemo, useRef, useEffect, useState } from "react";
 import { useSunPosition } from "@/hooks/useSunPosition";
 import { EARTH_MEAN_RADIUS_KM } from "@/lib/constants";
+import EcefFrame from "./EcefFrame";
 
 const EARTH_RADIUS = EARTH_MEAN_RADIUS_KM;
 
 export default function Earth() {
-  const sunPos = useSunPosition();
-
   return (
     <>
-      {/* Earth sphere with procedural texture */}
-      <EarthSphere />
+      {/* Earth-fixed content spins with GMST to match ECI satellites */}
+      <EcefFrame>
+        <EarthSphere />
+      </EcefFrame>
 
-      {/* Atmospheric glow (additive sphere slightly larger) */}
+      {/* Atmospheric fresnel glow (view-dependent, not Earth-fixed) */}
       <EarthAtmosphere />
 
       {/* Grid lines (latitude/longitude) */}
       <GridLines />
-
-      {/* Optional terminator line (day/night boundary) */}
-      {sunPos && <TerminatorLine sunPos={sunPos.eci} />}
-
-      {/* Directional light synced to sun position */}
-      <SunDirectionalLight />
     </>
   );
 }
 
-/** Generate a procedural Earth texture using a canvas. */
+// ─── Day/Night Shader ─────────────────────────────────── //
+
+const EARTH_VERTEX = /* glsl */ `
+  varying vec3 vWorldNormal;
+  varying vec3 vWorldPos;
+  varying vec2 vUv;
+
+  void main() {
+    vUv = uv;
+    vWorldNormal = normalize((modelMatrix * vec4(normal, 0.0)).xyz);
+    vec4 worldPos = modelMatrix * vec4(position, 1.0);
+    vWorldPos = worldPos.xyz;
+    gl_Position = projectionMatrix * viewMatrix * worldPos;
+  }
+`;
+
+const EARTH_FRAGMENT = /* glsl */ `
+  uniform sampler2D uDayMap;
+  uniform sampler2D uNightMap;
+  uniform vec3 uSunDir;
+  uniform float uHasNight;
+  varying vec3 vWorldNormal;
+  varying vec3 vWorldPos;
+  varying vec2 vUv;
+
+  void main() {
+    vec3 n = normalize(vWorldNormal);
+    vec3 day = texture2D(uDayMap, vUv).rgb;
+    vec3 night = uHasNight > 0.5
+      ? texture2D(uNightMap, vUv).rgb
+      : day * 0.04;
+
+    // Soft terminator: fully night below -0.08, fully day above 0.15
+    float k = smoothstep(-0.08, 0.15, dot(n, uSunDir));
+    vec3 color = mix(night * 1.6, day, k);
+
+    // Subtle blue fresnel rim
+    vec3 viewDir = normalize(cameraPosition - vWorldPos);
+    float rim = pow(1.0 - max(dot(n, viewDir), 0.0), 3.0);
+    color += vec3(0.2, 0.45, 0.9) * rim * 0.35;
+
+    gl_FragColor = vec4(color, 1.0);
+    #include <tonemapping_fragment>
+    #include <colorspace_fragment>
+  }
+`;
+
+/** Generate the procedural fallback Earth texture using a canvas. */
 function createEarthTexture(): CanvasTexture {
   const size = 512;
   const canvas = document.createElement("canvas");
@@ -55,7 +104,6 @@ function createEarthTexture(): CanvasTexture {
   const imgData = ctx.createImageData(canvas.width, canvas.height);
   const data = imgData.data;
 
-  // Pseudo-random function seeded by coordinates
   const pseudoRandom = (x: number, y: number): number => {
     const seed = Math.sin(x * 12.9898 + y * 78.233) * 43758.5453;
     return seed - Math.floor(seed);
@@ -63,13 +111,12 @@ function createEarthTexture(): CanvasTexture {
 
   for (let y = 0; y < canvas.height; y++) {
     const lat = (y / canvas.height - 0.5) * Math.PI;
-    const isNearPole = Math.abs(lat) > 1.3; // ~60° latitude
+    const isNearPole = Math.abs(lat) > 1.3;
 
     for (let x = 0; x < canvas.width; x++) {
       const lon = (x / canvas.width) * Math.PI * 2;
       const idx = (y * canvas.width + x) * 4;
 
-      // Multi-octave noise for continent-like patterns
       const n1 = Math.sin(lon * 1.3 + lat * 0.7) * 0.3;
       const n2 = Math.sin(lon * 2.1 - lat * 0.4) * 0.2;
       const n3 = Math.cos(lon * 0.8 + lat * 1.2) * 0.25;
@@ -78,31 +125,27 @@ function createEarthTexture(): CanvasTexture {
       const noise = (n1 + n2 + n3 + n4 + n5 + 0.5) / 1.3;
 
       if (isNearPole && noise > 0.45) {
-        // Ice caps (white)
-        data[idx] = 240;     // R
-        data[idx + 1] = 245; // G
-        data[idx + 2] = 255; // B
-        data[idx + 3] = 255; // A
+        data[idx] = 240;
+        data[idx + 1] = 245;
+        data[idx + 2] = 255;
+        data[idx + 3] = 255;
       } else if (noise > 0.55) {
-        // Ocean (varied blues)
         const depth = noise;
-        data[idx] = Math.floor(10 + depth * 30);       // R
-        data[idx + 1] = Math.floor(40 + depth * 80);   // G
-        data[idx + 2] = Math.floor(100 + depth * 155); // B
+        data[idx] = Math.floor(10 + depth * 30);
+        data[idx + 1] = Math.floor(40 + depth * 80);
+        data[idx + 2] = Math.floor(100 + depth * 155);
         data[idx + 3] = 255;
       } else if (noise > 0.35) {
-        // Temperate land (green)
         const variation = pseudoRandom(x, y) * 0.3 + 0.7;
-        data[idx] = Math.floor(20 * variation);         // R
-        data[idx + 1] = Math.floor(120 * variation);    // G
-        data[idx + 2] = Math.floor(50 * variation);     // B
+        data[idx] = Math.floor(20 * variation);
+        data[idx + 1] = Math.floor(120 * variation);
+        data[idx + 2] = Math.floor(50 * variation);
         data[idx + 3] = 255;
       } else {
-        // Tropical/arid land (brown/tan)
         const variation = pseudoRandom(x, y) * 0.3 + 0.7;
-        data[idx] = Math.floor(140 * variation);        // R
-        data[idx + 1] = Math.floor(90 * variation);     // G
-        data[idx + 2] = Math.floor(40 * variation);     // B
+        data[idx] = Math.floor(140 * variation);
+        data[idx + 1] = Math.floor(90 * variation);
+        data[idx + 2] = Math.floor(40 * variation);
         data[idx + 3] = 255;
       }
     }
@@ -110,86 +153,124 @@ function createEarthTexture(): CanvasTexture {
 
   ctx.putImageData(imgData, 0, 0);
 
-  // Add clouds (soft white/gray blobs)
-  ctx.globalAlpha = 0.4;
-  for (let i = 0; i < 40; i++) {
-    const cx = pseudoRandom(i * 13.7, 0) * canvas.width;
-    const cy = pseudoRandom(0, i * 17.3) * canvas.height * 0.7 + canvas.height * 0.15;
-    const r = 20 + pseudoRandom(i * 23.1, i * 31.7) * 40;
-    const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
-    grad.addColorStop(0, "rgba(255,255,255,0.5)");
-    grad.addColorStop(1, "rgba(255,255,255,0)");
-    ctx.fillStyle = grad;
-    ctx.beginPath();
-    ctx.arc(cx, cy, r, 0, Math.PI * 2);
-    ctx.fill();
-  }
-  ctx.globalAlpha = 1.0;
-
   const texture = new CanvasTexture(canvas);
-  texture.minFilter = NearestFilter;
-  texture.magFilter = NearestFilter;
+  texture.colorSpace = SRGBColorSpace;
   return texture;
 }
 
-/**
- * Earth sphere with a procedural texture that looks like Earth
- * (blue oceans, green/brown continents, white polar ice, soft clouds).
- */
+/** Load a texture, resolving null on failure (missing file, decode error). */
+function loadTexture(url: string): Promise<Texture | null> {
+  return new Promise((resolve) => {
+    new TextureLoader().load(
+      url,
+      (tex) => {
+        tex.colorSpace = SRGBColorSpace;
+        tex.anisotropy = 8;
+        resolve(tex);
+      },
+      undefined,
+      () => resolve(null)
+    );
+  });
+}
+
+/** Earth sphere with the day/night shader (procedural fallback). */
 function EarthSphere() {
-  const materialRef = useRef<MeshStandardMaterial>(null!);
-
-  const material = useMemo(() => {
-    return new MeshStandardMaterial({
-      color: new Color(0xffffff),
-      metalness: 0.0,
-      roughness: 1.0,
-      emissive: new Color(0x05051a),
-      emissiveIntensity: 0.3,
-    });
-  }, []);
-
-  // Generate texture once (client-side only — uses document)
-  const texture = useMemo(() => {
-    if (typeof document === "undefined") return null;
-    return createEarthTexture();
-  }, []);
+  const [maps, setMaps] = useState<{
+    day: Texture;
+    night: Texture | null;
+  } | null>(null);
 
   useEffect(() => {
-    if (texture && materialRef.current) {
-      materialRef.current.map = texture;
-      materialRef.current.needsUpdate = true;
+    let cancelled = false;
+    (async () => {
+      const [day, night] = await Promise.all([
+        loadTexture("/textures/earth-day.jpg"),
+        loadTexture("/textures/earth-night.jpg"),
+      ]);
+      if (cancelled) return;
+      setMaps({ day: day ?? createEarthTexture(), night: day ? night : null });
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const sunPos = useSunPosition();
+
+  const material = useMemo(() => {
+    if (!maps) return null;
+    return new ShaderMaterial({
+      uniforms: {
+        uDayMap: { value: maps.day },
+        uNightMap: { value: maps.night ?? maps.day },
+        uHasNight: { value: maps.night ? 1 : 0 },
+        uSunDir: { value: new Vector3(1, 0, 0) },
+      },
+      vertexShader: EARTH_VERTEX,
+      fragmentShader: EARTH_FRAGMENT,
+    });
+  }, [maps]);
+
+  useEffect(() => () => material?.dispose(), [material]);
+
+  // Keep the sun direction uniform current (60s-quantized source)
+  useEffect(() => {
+    if (material && sunPos) {
+      (material.uniforms.uSunDir.value as Vector3)
+        .set(sunPos.eci[0], sunPos.eci[1], sunPos.eci[2])
+        .normalize();
     }
-  }, [texture, material]);
+  }, [material, sunPos]);
+
+  if (!material) return null;
 
   return (
-    <mesh castShadow receiveShadow>
-      <sphereGeometry args={[EARTH_RADIUS, 256, 256]} />
-      <primitive ref={materialRef} object={material} attach="material" />
+    // Geometry poles are on +Y; rotate so they align with scene +Z (ECI north)
+    <mesh rotation-x={Math.PI / 2}>
+      <sphereGeometry args={[EARTH_RADIUS, 96, 96]} />
+      <primitive object={material} attach="material" />
     </mesh>
   );
 }
 
-/** Atmospheric glow using an additive-blended shell. */
+/** Atmospheric glow using an additive-blended back-side shell. */
 function EarthAtmosphere() {
   const material = useMemo(
     () =>
-      new MeshBasicMaterial({
-        color: new Color(0x3278dc),
+      new ShaderMaterial({
+        uniforms: {},
+        vertexShader: /* glsl */ `
+          varying vec3 vWorldNormal;
+          varying vec3 vWorldPos;
+          void main() {
+            vWorldNormal = normalize((modelMatrix * vec4(normal, 0.0)).xyz);
+            vec4 worldPos = modelMatrix * vec4(position, 1.0);
+            vWorldPos = worldPos.xyz;
+            gl_Position = projectionMatrix * viewMatrix * worldPos;
+          }
+        `,
+        fragmentShader: /* glsl */ `
+          varying vec3 vWorldNormal;
+          varying vec3 vWorldPos;
+          void main() {
+            vec3 viewDir = normalize(cameraPosition - vWorldPos);
+            // BackSide: normals face away — glow strongest at the limb
+            float intensity = pow(0.62 + dot(normalize(vWorldNormal), viewDir), 3.5);
+            gl_FragColor = vec4(vec3(0.2, 0.47, 0.86) * intensity, intensity * 0.5);
+          }
+        `,
         side: BackSide,
         transparent: true,
-        opacity: 0.25,
         blending: AdditiveBlending,
         depthWrite: false,
-        polygonOffset: true,
-        polygonOffsetFactor: -1,
       }),
     []
   );
 
   return (
-    <mesh scale={[1.02, 1.02, 1.02]}>
-      <sphereGeometry args={[EARTH_RADIUS, 128, 128]} />
+    <mesh scale={[1.035, 1.035, 1.035]}>
+      <sphereGeometry args={[EARTH_RADIUS, 64, 64]} />
       <primitive object={material} attach="material" />
     </mesh>
   );
@@ -203,72 +284,11 @@ function GridLines() {
       <meshBasicMaterial
         color={new Color(0x4a9eff)}
         transparent
-        opacity={0.08}
+        opacity={0.05}
         depthWrite={false}
         side={BackSide}
         wireframe
       />
     </mesh>
-  );
-}
-
-/** Day/night terminator line (where the sun is at the horizon). */
-function TerminatorLine({ sunPos }: { sunPos: [number, number, number] }) {
-  const points: number[] = [];
-  const segments = 120;
-  for (let i = 0; i <= segments; i++) {
-    const lon = (i / segments) * Math.PI * 2;
-    // Terminator is where dot(sunDir, point) = 0
-    // For a unit sphere: point = (cos(lat)*cos(lon), cos(lat)*sin(lon), sin(lat))
-    // sunDir dot point = 0 → cos(lat)*cos(lon)*sx + cos(lat)*sin(lon)*sy + sin(lat)*sz = 0
-    // tan(lat) = -(cos(lon)*sx + sin(lon)*sy) / sz
-    const tanLat = -(Math.cos(lon) * sunPos[0] + Math.sin(lon) * sunPos[1]) / sunPos[2];
-    const lat = Math.atan(tanLat);
-    const r = EARTH_RADIUS * 1.001;
-    points.push(
-      r * Math.cos(lat) * Math.cos(lon),
-      r * Math.cos(lat) * Math.sin(lon),
-      r * Math.sin(lat)
-    );
-  }
-
-  return (
-    <lineSegments>
-      <bufferGeometry>
-        <bufferAttribute
-          attach="attributes-position"
-          args={[new Float32Array(points), 3]}
-        />
-      </bufferGeometry>
-      <lineBasicMaterial
-        color={new Color(0x4a9eff)}
-        transparent
-        opacity={0.4}
-        toneMapped={false}
-        depthWrite={false}
-      />
-    </lineSegments>
-  );
-}
-
-/**
- * Directional light that follows the sun's position in ECI space.
- */
-function SunDirectionalLight() {
-  const sunPos = useSunPosition();
-
-  if (!sunPos) return null;
-
-  return (
-    <directionalLight
-      position={[
-        sunPos.eci[0] * 1e8,
-        sunPos.eci[1] * 1e8,
-        sunPos.eci[2] * 1e8,
-      ]}
-      castShadow
-      intensity={2}
-      color={new Color(0xffffff)}
-    />
   );
 }

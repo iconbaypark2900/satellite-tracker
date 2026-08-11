@@ -16,6 +16,7 @@ import SatelliteIcons from "./SatelliteIcons";
 import OrbitPaths from "./OrbitPaths";
 import GroundTracks from "./GroundTracks";
 import SatelliteLabels from "./SatelliteLabels";
+import EcefFrame from "./EcefFrame";
 import { TleSet, Satellite } from "@/types";
 
 interface Props {
@@ -37,11 +38,14 @@ export default function SatelliteLayer({ tles, satellites }: Props) {
         selectedNorad={selectedNorad}
         hoveredNorad={hoveredNorad}
       />
-      <GroundTracks
-        tles={tles}
-        selectedNorad={selectedNorad}
-        hoveredNorad={hoveredNorad}
-      />
+      {/* Ground tracks are ECEF (Earth-fixed) — render in the rotating frame */}
+      <EcefFrame>
+        <GroundTracks
+          tles={tles}
+          selectedNorad={selectedNorad}
+          hoveredNorad={hoveredNorad}
+        />
+      </EcefFrame>
       <SatelliteIcons
         tles={tles}
         satellites={satellites}
