@@ -8,15 +8,10 @@
 
 "use client";
 
-"use client";
-
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
-import LoadingScreen from "@/components/layout/LoadingScreen";
+import Sidebar from "@/components/ui/Sidebar";
 import TimeSlider from "@/components/ui/TimeSlider";
-import ConstellationFilter from "@/components/ui/ConstellationFilter";
-import SatelliteList from "@/components/ui/SatelliteList";
-import SatelliteDetail from "@/components/ui/SatelliteDetail";
 import { useSatelliteStore } from "@/lib/satellite-store";
 import { useSatelliteInitializer } from "@/hooks/useSatelliteInitializer";
 import { useSunPosition } from "@/hooks/useSunPosition";
@@ -30,16 +25,18 @@ interface SkyCanvasProps {
 
 export default function SkyPage() {
   useSatelliteInitializer();
-  const { isLoading, getVisibleSatellites } = useSatelliteStore();
+  const { error } = useSatelliteStore();
   const sun = useSunPosition();
 
-  const satellites = getVisibleSatellites().filter((s) => s.tle);
+  const { getVisibleSatellites } = useSatelliteStore();
+  const visibleSats = getVisibleSatellites().filter((s) => s.tle);
 
   return (
     <main className="relative h-screen w-full">
       <Header />
 
-      <div className="absolute inset-0 pt-14 pb-10 flex items-center justify-center">
+      {/* Celestial sphere view */}
+      <div className="absolute top-14 left-0 right-80 bottom-20 flex items-center justify-center">
         <div className="relative w-full max-w-3xl h-full">
           {/* Celestial sphere canvas (placeholder) */}
           <div
@@ -49,7 +46,7 @@ export default function SkyPage() {
                 "radial-gradient(circle, #0a2040 0%, #05051a 100%)",
             }}
           >
-            <SkyCanvas satellites={satellites} sun={sun} />
+            <SkyCanvas satellites={visibleSats} sun={sun} />
           </div>
 
           <div className="absolute top-2 left-2 text-xs text-[#6f6d69]">
@@ -58,25 +55,28 @@ export default function SkyPage() {
         </div>
       </div>
 
-      {/* Sidebar */}
-      <div className="absolute top-14 right-0 h-[calc(100vh-3.5rem)] w-80">
-        <SatelliteList />
+      {/* Right sidebar */}
+      <div className="absolute top-14 right-0 bottom-10 w-80">
+        <Sidebar />
       </div>
 
-      <div className="absolute bottom-14 right-0 w-80 p-2">
-        <SatelliteDetail />
-      </div>
-
-      <div className="absolute top-16 left-4 w-64">
-        <ConstellationFilter />
-      </div>
-
-      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 w-full max-w-md">
+      {/* Time Slider */}
+      <div className="absolute bottom-20 left-1/2 -translate-x-1/2 w-full max-w-md">
         <TimeSlider />
       </div>
 
       <Footer />
-      {isLoading && <LoadingScreen />}
+
+      {/* Error overlay */}
+      {error && (
+        <div className="fixed inset-0 bg-space/90 flex items-center justify-center z-[100]">
+          <div className="p-6 text-center">
+            <div className="text-2xl mb-2">⚠️</div>
+            <p className="text-sm text-text-muted mb-1">{error}</p>
+            <p className="text-xs text-text-muted">Retrying…</p>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

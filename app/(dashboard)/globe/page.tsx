@@ -2,8 +2,8 @@
  * /globe — Main 3D globe view.
  *
  * Renders the Three.js Earth with live satellite positions,
- * orbit paths, and ground tracks. Sidebar shows satellite list
- * and details. Time slider at the bottom.
+ * orbit paths, and ground tracks. Right sidebar shows the satellite
+ * list and details. Time slider at the bottom.
  */
 
 "use client";
@@ -12,13 +12,10 @@ import dynamic from "next/dynamic";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import LoadingScreen from "@/components/layout/LoadingScreen";
-import SatelliteList from "@/components/ui/SatelliteList";
-import SatelliteDetail from "@/components/ui/SatelliteDetail";
+import Sidebar from "@/components/ui/Sidebar";
 import TimeSlider from "@/components/ui/TimeSlider";
-import ConstellationFilter from "@/components/ui/ConstellationFilter";
-import { useSatelliteInitializer } from "@/hooks/useSatelliteInitializer";
 import { useSatelliteStore } from "@/lib/satellite-store";
-import { computeOrbitalParams } from "@/lib/orbit-utils";
+import { useSatelliteInitializer } from "@/hooks/useSatelliteInitializer";
 
 // Dynamically import GlobeScene (heavy Three.js bundle, client-only)
 const GlobeScene = dynamic(() => import("@/components/globe/GlobeScene"), {
@@ -30,43 +27,42 @@ export default function GlobePage() {
   // Initialize TLE data on first load
   useSatelliteInitializer();
 
-  const { isLoading, error } = useSatelliteStore();
+  const { error } = useSatelliteStore();
 
   return (
     <main className="relative h-screen w-full">
       <Header />
 
-      {/* 3D Globe Canvas (full viewport) */}
-      <div style={{ position: 'absolute', top: '56px', left: 0, right: 0, bottom: 0, height: 'calc(100vh - 96px)' }}>
-        <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+      {/* 3D Globe Canvas (fills area below header, left of sidebar, above footer) */}
+      <div className="absolute top-14 left-0 right-80 bottom-10">
+        <div className="relative w-full h-full">
           <GlobeScene />
         </div>
       </div>
 
-      {/* Sidebar */}
-      <div className="absolute top-14 right-0 h-[calc(100vh-3.5rem)] w-80">
-        <SatelliteList />
+      {/* Right sidebar: constellation filter + satellite list + detail */}
+      <div className="absolute top-14 right-0 bottom-10 w-80">
+        <Sidebar />
       </div>
 
-      {/* Satellite Detail Panel (below list) */}
-      <div className="absolute bottom-14 right-0 w-80 p-2">
-        <SatelliteDetail />
-      </div>
-
-      {/* Constellation Filter */}
-      <div className="absolute top-16 left-4 w-64">
-        <ConstellationFilter />
-      </div>
-
-      {/* Time Slider */}
-      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 w-full max-w-md">
+      {/* Time Slider (positioned above the footer) */}
+      <div className="absolute bottom-20 left-1/2 -translate-x-1/2 w-full max-w-md">
         <TimeSlider />
       </div>
 
       {/* Footer */}
       <Footer />
 
-      {isLoading && <LoadingScreen />}
+      {/* Error overlay (only when there's a real error) */}
+      {error && (
+        <div className="fixed inset-0 bg-space/90 flex items-center justify-center z-[100]">
+          <div className="p-6 text-center">
+            <div className="text-2xl mb-2">⚠️</div>
+            <p className="text-sm text-text-muted mb-1">{error}</p>
+            <p className="text-xs text-text-muted">Retrying…</p>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

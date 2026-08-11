@@ -1,20 +1,18 @@
 /**
- * LoadingScreen.tsx — Splash screen shown while TLE data loads.
+ * LoadingScreen.tsx — Loading indicator shown while the 3D globe
+ * bundle loads or while TLE data initializes.
  *
- * Displays a progress indicator and loading status text.
+ * Renders as an inline (container-filling) spinner, NOT a full-screen
+ * overlay, so the header, sidebar, and footer remain visible.
  */
 
 "use client";
 
-import { useSatelliteStore } from "@/lib/satellite-store";
-
 export default function LoadingScreen() {
-  const { isLoading, error, tleAge } = useSatelliteStore();
-
   return (
     <div
       style={{
-        position: "fixed",
+        position: "absolute",
         inset: 0,
         display: "flex",
         flexDirection: "column",
@@ -22,21 +20,21 @@ export default function LoadingScreen() {
         justifyContent: "center",
         background: "#05051a",
         color: "#e0e0ff",
-        zIndex: 1000,
+        zIndex: 10,
       }}
     >
-      <div style={{ fontSize: "1.2rem", marginBottom: "0.5rem" }}>
-        🛰️ Satellite Tracker
+      <div style={{ fontSize: "1rem", marginBottom: "0.5rem" }}>
+        🛰️ Loading globe…
       </div>
 
-      <div style={{ fontSize: "0.72rem", color: "#6f6d69", marginBottom: "1.5rem" }}>
-        Loading orbital data…
+      <div style={{ fontSize: "0.7rem", color: "#6f6d69", marginBottom: "1rem" }}>
+        Initializing orbital data…
       </div>
 
       <div
         style={{
-          width: "32px",
-          height: "32px",
+          width: "28px",
+          height: "28px",
           border: "2px solid rgba(65, 55, 139, 0.3)",
           borderTopColor: "#4137ff",
           borderRadius: "50%",
@@ -49,12 +47,6 @@ export default function LoadingScreen() {
           to { transform: rotate(360deg); }
         }
       `}</style>
-
-      {error && (
-        <p style={{ color: "#ff80ab", fontSize: "0.7rem", marginTop: "1rem" }}>
-          ⚠️ {error} — retrying…
-        </p>
-      )}
     </div>
   );
 }

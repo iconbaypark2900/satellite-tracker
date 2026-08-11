@@ -3,6 +3,7 @@
  * constellation group (ISS, Starlink, GPS, GOES, etc.).
  *
  * Shows a count of visible satellites per group and a master "All" toggle.
+ * In compact mode, the layout is tighter for use inside the sidebar strip.
  */
 
 "use client";
@@ -15,7 +16,12 @@ const ALL_GROUPS: SatelliteGroup[] = [
   "STATIONS", "STARLINK", "ONEWEB", "GPS-OPS", "GOES", "SES", "INTREPID", "OTHER",
 ];
 
-export default function ConstellationFilter() {
+interface Props {
+  /** When true, renders a tighter layout suitable for sidebar strips. */
+  compact?: boolean;
+}
+
+export default function ConstellationFilter({ compact = false }: Props) {
   const { constellationFilters, toggleConstellation, setConstellationFilters, getVisibleSatellites } = useSatelliteStore();
   const allSatellites = getVisibleSatellites();
 
@@ -31,53 +37,83 @@ export default function ConstellationFilter() {
     setConstellationFilters(filters);
   };
 
+  const allVisible = ALL_GROUPS.every((g) => isGroupVisible(g));
+
   return (
     <div className="dp">
-      <h2 style={{ marginBottom: "0.3rem" }}>Constellations</h2>
+      {!compact && (
+        <h2 className="text-primary mb-1 text-xs font-semibold">
+          Constellations
+        </h2>
+      )}
 
-      <div style={{ display: "flex", gap: "0.3rem", marginBottom: "0.5rem" }}>
+      <div className={`flex gap-1 ${compact ? "mb-1" : "mb-2"}`}>
         <button
           className="sb"
-          style={{ fontSize: "0.65rem", padding: "0.2rem 0.5rem", flex: 1 }}
+          style={{
+            fontSize: "0.62rem",
+            padding: "0.15rem 0.4rem",
+            flex: 1,
+          }}
           onClick={() => toggleAll(true)}
         >
           All
         </button>
         <button
           className="sb"
-          style={{ fontSize: "0.65rem", padding: "0.2rem 0.5rem", flex: 1 }}
+          style={{
+            fontSize: "0.62rem",
+            padding: "0.15rem 0.4rem",
+            flex: 1,
+          }}
           onClick={() => toggleAll(false)}
         >
           None
         </button>
       </div>
 
-      {ALL_GROUPS.map((group) => {
-        const visible = isGroupVisible(group);
-        const count = getGroupCount(group);
-        const color = GROUP_COLORS[group];
+      <div className="grid grid-cols-2 gap-x-1 gap-y-0.5">
+        {ALL_GROUPS.map((group) => {
+          const visible = isGroupVisible(group);
+          const count = getGroupCount(group);
+          const color = GROUP_COLORS[group];
+          const label = GROUP_LABELS[group];
 
-        return (
-          <div
-            key={group}
-            className="si"
-            style={{
-              justifyContent: "space-between",
-              opacity: visible ? 1 : 0.4,
-            }}
-            onClick={() => toggleConstellation(group, !visible)}
-          >
-            <span style={{ display: "flex", alignItems: "center", gap: "0.3rem" }}>
-              <span
-                className="dot"
-                style={{ background: color, boxShadow: `0 0 6px ${color}` }}
-              />
-              {GROUP_LABELS[group]}
-            </span>
-            <span style={{ fontSize: "0.65rem", color: "#6f6d69" }}>{count}</span>
-          </div>
-        );
-      })}
+          return (
+            <div
+              key={group}
+              className="si"
+              style={{
+                justifyContent: "space-between",
+                opacity: visible ? 1 : 0.4,
+                fontSize: compact ? "0.6rem" : "0.65rem",
+                padding: compact ? "0.15rem 0.2rem" : "0.2rem 0.2rem",
+              }}
+              onClick={() => toggleConstellation(group, !visible)}
+            >
+              <span className="flex items-center gap-1">
+                <span
+                  className="dot"
+                  style={{
+                    background: color,
+                    boxShadow: `0 0 6px ${color}`,
+                    width: compact ? "5px" : "6px",
+                    height: compact ? "5px" : "6px",
+                  }}
+                />
+                <span>{label}</span>
+              </span>
+              <span style={{ color: "#6f6d69", fontSize: "0.6rem" }}>{count}</span>
+            </div>
+          );
+        })}
+      </div>
+
+      {!compact && (
+        <div style={{ fontSize: "0.62rem", color: "#6f6d69", marginTop: "0.3rem" }}>
+          {allVisible ? "All constellations visible" : "Some constellations hidden"}
+        </div>
+      )}
     </div>
   );
 }

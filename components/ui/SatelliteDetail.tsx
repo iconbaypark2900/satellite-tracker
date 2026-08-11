@@ -2,7 +2,7 @@
  * SatelliteDetail.tsx — Detailed metadata panel for the selected satellite.
  *
  * Shows orbit parameters, operator info, and computed values (velocity,
- * orbit type, apogee/perigee). Hidden when no satellite is selected.
+ * orbit type, apogee/perigee). Shows a placeholder when no satellite is selected.
  */
 
 "use client";
@@ -10,6 +10,7 @@
 import { useSatelliteStore } from "@/lib/satellite-store";
 import { Satellite } from "@/types";
 import { orbitalVelocity, orbitType } from "@/lib/orbit-utils";
+import { GROUP_COLORS } from "@/lib/constants";
 
 export default function SatelliteDetail() {
   const { selectedSatellite, setSelectedSatellite } = useSatelliteStore();
@@ -17,19 +18,11 @@ export default function SatelliteDetail() {
   if (!selectedSatellite) {
     return (
       <div className="dp">
-        <h2 style={{ color: "#4137ff", marginBottom: "0.4rem", fontSize: "0.8rem" }}>
+        <h2 className="text-primary mb-1 text-xs font-semibold">
           Selected Satellite
         </h2>
-        <p
-          id="sh"
-          style={{
-            color: "#6f6d69",
-            fontSize: "0.68px",
-            textAlign: "center",
-            paddingTop: "0.3rem",
-          }}
-        >
-          🔍 Click a satellite to view details
+        <p className="text-text-muted text-center py-3 text-xs">
+          🔍 Click a satellite or its orbit path to view details
         </p>
       </div>
     );
@@ -38,6 +31,7 @@ export default function SatelliteDetail() {
   const sat = selectedSatellite;
   const vel = orbitalVelocity(sat.altitude);
   const oType = orbitType(sat.altitude, sat.inclination);
+  const color = GROUP_COLORS[sat.group] ?? GROUP_COLORS.OTHER;
 
   const fields = [
     { label: "Name", value: sat.name },
@@ -57,21 +51,30 @@ export default function SatelliteDetail() {
 
   return (
     <div className="dp">
-      <h2 style={{ color: "#4137ff", marginBottom: "0.4rem", fontSize: "0.8rem" }}>
-        Selected Satellite
-      </h2>
+      <div className="flex items-center gap-2 mb-1">
+        <span
+          className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+          style={{
+            background: color,
+            boxShadow: `0 0 6px ${color}`,
+          }}
+        />
+        <h2 className="text-primary text-xs font-semibold">
+          Selected Satellite
+        </h2>
+      </div>
 
-      <div id="sm" style={{ display: "block" }}>
+      <div className="space-y-0.5">
         {fields.map((f) => (
           <div key={f.label} className="dr">
             <span className="lab">{f.label}</span>
-            <span className="val" id={`n${fields.indexOf(f) + 1}`}>{f.value}</span>
+            <span className="val">{f.value}</span>
           </div>
         ))}
       </div>
 
       <p
-        style={{ color: "#6f6d69", fontSize: "0.65rem", marginTop: "0.3rem" }}
+        className="text-text-muted text-xs mt-1 cursor-pointer hover:text-primary transition-colors"
         onClick={() => setSelectedSatellite(null)}
       >
         ✕ Clear selection
