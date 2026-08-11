@@ -38,8 +38,10 @@ export function useTimeControl() {
         return;
       }
 
+      // simTime = Date.now() + offset, so real time already contributes 1x;
+      // the offset only absorbs the speed-up beyond real time (speed - 1).
       const deltaSec = deltaMs / 1000;
-      const deltaMin = deltaSec * current.speed * 60;
+      const deltaMin = (deltaSec * (current.speed - 1)) / 60;
 
       // Read the current offset directly from the store (no stale closure)
       const currentOffset = useSatelliteStore.getState().timeControl.offsetMinutes;

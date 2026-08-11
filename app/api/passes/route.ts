@@ -16,6 +16,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { predictPasses, getNextVisiblePass } from "@/lib/pass-calculator";
 import { fetchAllTles, getTleByNorad } from "@/lib/tle-client";
+import { findCachedTle } from "@/lib/tle-cache-file";
 import { ObserverLocation } from "@/types";
 
 export async function POST(request: NextRequest) {
@@ -30,13 +31,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Try to get TLE from cache
+    // Try to get TLE from the in-memory cache
     let tle = getTleByNorad(noradId);
 
-    // If not cached, fetch fresh TLEs
+    // If not cached, fetch fresh TLEs; fall back to the local cache file
+    // when Celestrak is unreachable
     if (!tle) {
-      const allTles = await fetchAllTles();
-      tle = allTles.find((t) => t.noradId === noradId);
+      try {
+        const allTles = await fetchAllTles();
+        tle = allTles.find((t) => t.noradId === noradId);
+      } catch {
+        tle = findCachedTle(noradId);
+      }
     }
 
     if (!tle) {

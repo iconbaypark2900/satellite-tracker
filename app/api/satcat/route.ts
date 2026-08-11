@@ -12,9 +12,8 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { fetchSatCatRecords } from "@/lib/satcat-client";
-import { SATCAT_CACHE_TTL } from "@/lib/constants";
 
-export const revalidate = SATCAT_CACHE_TTL;
+export const revalidate = 86400;
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);

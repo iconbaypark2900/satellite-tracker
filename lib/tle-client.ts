@@ -153,19 +153,10 @@ export async function fetchAllTles(signal?: AbortSignal): Promise<TleSet[]> {
     }
   });
 
-  // If all groups failed, fall back to default satellite list
+  // If all groups failed, surface the failure — callers decide what to
+  // fall back to (stale local cache beats synthetic data).
   if (allTles.length === 0 && errors.length === groups.length) {
-    console.warn("All Celestrak TLE fetches failed, using default satellite list");
-    return DEFAULT_SATELLITES
-      .filter((s) => groups.includes(s.group as SatelliteGroup))
-      .map((s) => ({
-        name: s.name,
-        noradId: s.norad,
-        line1: s.line1 ?? "",
-        line2: s.line2 ?? "",
-        epoch: "",
-        group: s.group as SatelliteGroup,
-      }));
+    throw new Error(`All Celestrak TLE fetches failed: ${errors.join("; ")}`);
   }
 
   if (errors.length > 0) {
@@ -173,6 +164,21 @@ export async function fetchAllTles(signal?: AbortSignal): Promise<TleSet[]> {
   }
 
   return allTles;
+}
+
+/**
+ * Last-resort synthetic satellite list. The elements are approximate and
+ * the epochs are stale — only for keeping the UI alive with zero data.
+ */
+export function getFallbackTles(): TleSet[] {
+  return DEFAULT_SATELLITES.map((s) => ({
+    name: s.name,
+    noradId: s.norad,
+    line1: s.line1 ?? "",
+    line2: s.line2 ?? "",
+    epoch: "",
+    group: s.group as SatelliteGroup,
+  }));
 }
 
 /**

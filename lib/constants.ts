@@ -68,14 +68,14 @@ export const GROUP_LABELS: Record<SatelliteGroup, string> = {
 
 /** Map of Celestrak group names to their TLE fetch URLs. */
 export const CELESTRAK_TLE_GROUPS: Record<SatelliteGroup, string> = {
-  STATIONS: "https://celestrak.org/cgi-bin/gp/makegp.cgi?GROUP=STATIONS&FORMAT=TLE",
-  STARLINK: "https://celestrak.org/cgi-bin/gp/makegp.cgi?GROUP=STARLINK&FORMAT=TLE",
-  ONEWEB: "https://celestrak.org/cgi-bin/gp/makegp.cgi?GROUP=ONEWEB&FORMAT=TLE",
-  "GPS-OPS": "https://celestrak.org/cgi-bin/gp/makegp.cgi?GROUP=GPS-OPS&FORMAT=TLE",
-  GOES: "https://celestrak.org/cgi-bin/gp/makegp.cgi?GROUP=GOES&FORMAT=TLE",
-  SES: "https://celestrak.org/cgi-bin/gp/makegp.cgi?GROUP=SES&FORMAT=TLE",
-  INTREPID: "https://celestrak.org/cgi-bin/gp/makegp.cgi?GROUP=INTREPID&FORMAT=TLE",
-  OTHER: "https://celestrak.org/cgi-bin/gp/makegp.cgi?GROUP=STATIONS&FORMAT=TLE",
+  STATIONS: "https://celestrak.org/NORAD/elements/gp.php?GROUP=stations&FORMAT=tle",
+  STARLINK: "https://celestrak.org/NORAD/elements/gp.php?GROUP=starlink&FORMAT=tle",
+  ONEWEB: "https://celestrak.org/NORAD/elements/gp.php?GROUP=oneweb&FORMAT=tle",
+  "GPS-OPS": "https://celestrak.org/NORAD/elements/gp.php?GROUP=gps-ops&FORMAT=tle",
+  GOES: "https://celestrak.org/NORAD/elements/gp.php?GROUP=goes&FORMAT=tle",
+  SES: "https://celestrak.org/NORAD/elements/gp.php?GROUP=ses&FORMAT=tle",
+  INTREPID: "https://celestrak.org/NORAD/elements/gp.php?GROUP=intelsat&FORMAT=tle",
+  OTHER: "https://celestrak.org/NORAD/elements/gp.php?GROUP=stations&FORMAT=tle",
 };
 
 /** Celestrak SATCAT records API endpoint. */
@@ -105,6 +105,11 @@ export const DEFAULT_SATELLITES = [
   { name: "Voyager 1", norad: "01132", group: "OTHER", line1: "1 01132A          25210.50000000  .00000100  00000+0  10000-4 0  9998", line2: "2 01132  36.0000 200.0000 0009999 200.0000 100.0000  1.00500000477000" },
   { name: "Voyager 2", norad: "01133", group: "OTHER", line1: "1 01133A          25210.50000000  .00000100  00000+0  10000-4 0  9998", line2: "2 01133  36.0000 210.0000 0009999 210.0000 110.0000  1.00500000477000" },
 ] as const;
+
+// ─── Pass Prediction ──────────────────────────────────── //
+
+/** Single minimum-elevation policy for reporting passes (degrees). */
+export const MIN_PASS_ELEVATION_DEG = 10;
 
 // ─── Timing Constants ─────────────────────────────────── //
 
