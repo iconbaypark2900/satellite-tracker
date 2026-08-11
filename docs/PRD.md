@@ -262,32 +262,36 @@ satellite-tracker/
 - [x] Basic orbit controls (rotate, zoom, pan)
 
 ### Phase 2: Data Integration (Days 4–7)
-- [x] Celestrak TLE API client + caching
-- [x] SGP4 propagation (satellite.js) in WebWorker
-- [x] Render 50+ satellites with correct positions
-- [x] Orbit path prediction lines
-- [ ] Ground track rendering
+- [x] Celestrak TLE API client + caching (with mirror fallback: AMSAT, r4uab)
+- [x] SGP4 propagation (satellite.js) in WebWorker (transferable buffers + dead-reckoning)
+- [x] Render 50+ satellites with correct positions (single Points draw call, scales to ~8000)
+- [x] Orbit path prediction lines (selected/hovered satellite)
+- [x] Ground track rendering (selected/hovered, ECEF frame)
 
 ### Phase 3: UI & Interaction (Days 8–10)
 - [x] Satellite sidebar with search + constellation grouping
-- [x] Satellite detail panel (metadata)
+- [x] Satellite detail panel (metadata: TLE-derived designator, static records, SATCAT when reachable)
 - [x] Time slider with live update
-- [x] Sun-synchronized lighting system
+- [x] Sun-synchronized lighting system (day/night texture shader + GMST Earth rotation)
 - [x] Constellation filters (toggle visibility)
+- [x] Navigation between Globe / Sky / Passes views
+- [x] Pass predictions page (topocentric look angles, rise/set refinement, visibility)
+- [x] Sky view (alt/az polar plot, click-to-select, selected-satellite trail)
 
 ### Phase 4: Polish (Days 11–12)
-- [x] Atmospheric scattering shader
+- [x] NASA Blue Marble day/night Earth textures (procedural fallback)
+- [x] Fresnel atmosphere shell
 - [x] Satellite glow + selection highlight
-- [x] Responsive layout (mobile + desktop)
 - [x] Loading states + error boundaries
-- [x] SEO (OpenGraph, sitemap, favicons)
+- [ ] Responsive layout audit (mobile)
+- [ ] SEO (OpenGraph image, sitemap)
 
 ### Phase 5: Deploy & Iterate (Day 13–14)
-- [x] Deploy to Vercel
-- [x] Set up Google Analytics
-- [x] Test on mobile + desktop
+- [ ] Deploy to Vercel (build pipeline ready: prebuild TLE refresh, file tracing)
+- [ ] Test on mobile + desktop
 - [x] Write README + setup docs
-- [x] Portfolio showcase page
+- [ ] Google Analytics (not started)
+- [ ] Portfolio showcase page (not started)
 
 ---
 

@@ -28,6 +28,9 @@ const robotoMono = Roboto_Mono({
 });
 
 export const metadata = {
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_SITE_URL ?? "https://satellite-tracker.vercel.app"
+  ),
   title: "🛰️ Satellite Tracker — Real-time 3D Orbital Visualization",
   description:
     "Track satellites in real-time with SGP4 orbital mechanics. Built with Next.js 15, Three.js, and satellite.js.",

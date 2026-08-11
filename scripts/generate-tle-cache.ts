@@ -88,9 +88,12 @@ async function main() {
   }
 
   if (tles.length === 0) {
-    throw new Error(
-      "No TLE source reachable — keeping the existing cache file untouched."
+    // Never fail the build over a TLE-source outage — the committed cache
+    // file stays in place and the runtime freshness chain degrades cleanly.
+    console.warn(
+      "⚠️  No TLE source reachable — keeping the existing cache file untouched."
     );
+    return;
   }
 
   // Group by constellation
@@ -124,6 +127,7 @@ async function main() {
 }
 
 main().catch((err) => {
-  console.error("Failed to generate TLE cache:", err);
-  process.exit(1);
+  // Warn-only: a cache refresh failure must never fail the build
+  console.warn("⚠️  Failed to refresh TLE cache (keeping existing):", err);
+  process.exit(0);
 });

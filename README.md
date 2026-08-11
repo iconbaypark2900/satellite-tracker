@@ -48,18 +48,20 @@ The full PRD with the Next.js + Three.js architecture is in [`docs/PRD.md`](docs
 # Clone & install
 git clone https://github.com/Quantum-Global-Group/satellite-tracker.git
 cd satellite-tracker
-cp .env.local.example .env.local
-npm install           # or: pnpm install
+pnpm install
 
 # Run locally
-npm run dev
+pnpm dev
 # → http://localhost:3000
 
-# Download Earth textures (first run only)
-npm run textures
+# Download NASA Earth textures (first run only; procedural fallback otherwise)
+pnpm textures
 
-# Pre-cache TLE snapshots
-npm run cache:tle
+# Refresh the TLE snapshot (Celestrak, falling back to AMSAT/r4uab mirrors)
+pnpm cache:tle
+
+# Run the orbital-math test suite
+pnpm test
 ```
 
 ---
@@ -101,9 +103,10 @@ satellite-tracker/
 
 | Source | Purpose |
 |--------|---------|
-| [Celestrak TLE API](https://celestrak.org/) | `gp.php?GROUP=STATIONS&FORMAT=TLE` — 5 groups: STATIONS, STARLINK, ONEWEB, GPS-OPS, GOES |
-| [Celestrak SATCAT](https://celestrak.org/) | `records.php?CATNR=XXXX&FORMAT=JSON` — metadata |
-| [NASA APIs](https://api.nasa.gov/) | Earth textures, space weather (optional) |
+| [Celestrak TLE API](https://celestrak.org/) | `gp.php?GROUP=…&FORMAT=tle` — primary live source (STATIONS, STARLINK, ONEWEB, GPS-OPS, GOES, SES, INTELSAT) |
+| [AMSAT](https://www.amsat.org/) + [r4uab](https://r4uab.ru/) | Mirror TLE sources for the build-time cache when Celestrak is unreachable (it blocks some IP ranges) — stations, weather, amateur satellites |
+| [Celestrak SATCAT](https://celestrak.org/) | `records.php?CATNR=XXXX&FORMAT=JSON` — metadata enrichment (one CATNR per request), layered over bundled static metadata + TLE-derived launch designators |
+| [NASA Visible Earth](https://visibleearth.nasa.gov/) | Blue Marble day map + Earth-at-Night city lights (`pnpm textures`) |
 
 ---
 
@@ -113,27 +116,31 @@ satellite-tracker/
 Browser (R3F + Zustand)
    │
    ├── SWR → Next.js API Routes
-   │         ├── /api/tle      → Celestrak (5-min cache)
-   │         ├── /api/satcat   → SATCAT (24h cache)
-   │         └── /api/passes   → SGP4 pass predictions
+   │         ├── /api/tle      → cache file → Celestrak → stale cache → labeled fallback
+   │         ├── /api/satcat   → SATCAT proxy (24h cache, graceful absence)
+   │         └── /api/passes   → SGP4 pass predictions (topocentric look angles)
    │
-   ├── WebWorker — SGP4 propagation (60fps, 50+ satellites)
+   ├── WebWorker — batch SGP4 (transferable buffers), main thread
+   │              dead-reckons p + v·dt between worker states
    │
-   └── Canvas: GlobeScene → Earth + OrbitPaths + GroundTracks
-                             + SatelliteIcons (InstancedMesh)
+   └── Canvas: GlobeScene → Earth (day/night shader, GMST-rotated ECEF frame)
+                             + SatelliteLayer (Points shader, screen-space picking,
+                               orbit path + ground track for selected/hovered)
                              + SunLighting + Starfield
 ```
+
+Views: **/globe** (3D scene) · **/sky** (alt/az polar plot for the observer) · **/passes** (rise/set predictions with visibility).
 
 ---
 
 ## 📋 Roadmap
 
-See [`docs/PRD.md`](docs/PRD.md) for the full specification. Summary:
+See [`docs/PRD.md`](docs/PRD.md) for the full specification and the
+honest per-item checklist. Summary:
 
-- **Phase 1–2 (MVP):** 3D globe, 50+ satellites, SGP4 in WebWorker, time controls — ✅ Done (see [demo](demo/index.html))
-- **Phase 3:** UI/UX, constellation filters, responsive layout
-- **Phase 4:** Atmospheric scattering, mobile polish, SEO
-- **Phase 5:** Deploy to Vercel
+- **Phases 1–3 (MVP + views):** 3D globe with real NASA textures, ~400 live satellites (8000-capable), WebWorker SGP4, pass predictions, alt/az sky view, navigation — ✅ Done
+- **Phase 4:** mobile/responsive audit, OpenGraph/sitemap SEO — partial
+- **Phase 5:** Vercel deploy (build pipeline ready), analytics, portfolio page — pending
 
 ---
 

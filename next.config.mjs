@@ -1,6 +1,12 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  // The TLE cache file is read with readFileSync at runtime — serverless
+  // output tracing must bundle it or the offline fallback silently breaks.
+  outputFileTracingIncludes: {
+    "/api/tle": ["./public/tle-cache.json"],
+    "/api/passes": ["./public/tle-cache.json"],
+  },
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "celestrak.org" },

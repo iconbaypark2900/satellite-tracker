@@ -4,6 +4,7 @@
   "description": "🛰️ Real-time, interactive 3D satellite tracking platform — Next.js 15 + Three.js + SGP4 orbital mechanics",
   "scripts": {
     "dev": "next dev",
+    "prebuild": "tsx scripts/generate-tle-cache.ts",
     "build": "next build",
     "start": "next start",
     "lint": "next lint && tsc --noEmit",
