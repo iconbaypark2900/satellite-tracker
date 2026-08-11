@@ -1,93 +1,77 @@
 /// <reference lib="webworker" />
 
 /**
- * propagation-worker.ts — WebWorker for high-frequency SGP4 propagation.
+ * propagation-worker.ts — WebWorker for batch SGP4 propagation.
  *
- * Offloads orbital propagation from the main thread to maintain 60fps
- * when tracking 50+ satellites. Communicates via postMessage.
+ * Protocol (all buffers transferred, never cloned):
+ *   main → worker:
+ *     { type: "init", tles: TleLike[] }
+ *     { type: "tick", timeMs: number,
+ *       buffers?: { positions: ArrayBuffer; velocities: ArrayBuffer; valid: ArrayBuffer } }
+ *       — `buffers` returns the previously received set for reuse (ping-pong)
+ *   worker → main:
+ *     { type: "ready", noradIds: string[], failed: {noradId,name}[] }
+ *     { type: "state", timeMs: number,
+ *       positions: ArrayBuffer, velocities: ArrayBuffer, valid: ArrayBuffer }
  *
- * Expected messages:
- *   { type: "propagate", tles: TleSet[], simTime: number (unix ms) }
- *   { type: "stop" }
- *
- * Responds with:
- *   { type: "results", positions: Map<string, PropagationResult> }
+ * The worker never self-schedules — the main thread drives ticks.
  */
 
-import { propagateSatellite, dateToJulian } from "@/lib/orbit-utils";
-import { getSunPosition } from "@/lib/sun-position";
-import { TleSet, PropagationResult } from "@/types";
+import {
+  buildSatrecs,
+  propagateBatch,
+  TleLike,
+} from "../lib/propagation-core";
+import type { SatRec } from "satellite.js";
 
-// Worker context type (TypeScript needs this for WebWorker scripts)
 const ctx: Worker = self as unknown as Worker;
 
-let isRunning = false;
-let intervalId: ReturnType<typeof setInterval> | null = null;
+let satrecs: (SatRec | null)[] = [];
+let count = 0;
 
 ctx.onmessage = (e: MessageEvent) => {
-  const data = e.data as {
-    type: string;
-    tles: TleSet[];
-    simTime?: number;
-  };
+  const data = e.data;
 
-  switch (data.type) {
-    case "propagate":
-      handlePropagate(data.tles, data.simTime);
-      break;
-    case "start":
-      startLoop(data.tles);
-      break;
-    case "stop":
-      stopLoop();
-      break;
-    default:
-      // Ignore unknown messages
-      break;
+  if (data.type === "init") {
+    const tles = data.tles as TleLike[];
+    const built = buildSatrecs(tles);
+    satrecs = built.satrecs;
+    count = satrecs.length;
+    ctx.postMessage({ type: "ready", noradIds: built.noradIds, failed: built.failed });
+    return;
+  }
+
+  if (data.type === "tick") {
+    if (count === 0) return;
+
+    // Reuse returned buffers when they match the current fleet size
+    let positions: Float32Array;
+    let velocities: Float32Array;
+    let valid: Uint8Array;
+    const b = data.buffers as
+      | { positions: ArrayBuffer; velocities: ArrayBuffer; valid: ArrayBuffer }
+      | undefined;
+    if (b && b.positions.byteLength === count * 3 * 4) {
+      positions = new Float32Array(b.positions);
+      velocities = new Float32Array(b.velocities);
+      valid = new Uint8Array(b.valid);
+    } else {
+      positions = new Float32Array(count * 3);
+      velocities = new Float32Array(count * 3);
+      valid = new Uint8Array(count);
+    }
+
+    propagateBatch(satrecs, data.timeMs as number, positions, velocities, valid);
+
+    ctx.postMessage(
+      {
+        type: "state",
+        timeMs: data.timeMs,
+        positions: positions.buffer,
+        velocities: velocities.buffer,
+        valid: valid.buffer,
+      },
+      [positions.buffer, velocities.buffer, valid.buffer]
+    );
   }
 };
-
-/**
- * Propagate all satellites at a specific time and post results.
- */
-function handlePropagate(tles: TleSet[], simTime?: number) {
-  if (!tles || tles.length === 0) return;
-
-  const date = simTime ? new Date(simTime) : new Date();
-  const results = new Map<string, PropagationResult>();
-
-  for (const tle of tles) {
-    const result = propagateSatellite(tle, date);
-    results.set(tle.noradId, result);
-  }
-
-  ctx.postMessage({ type: "results", results });
-}
-
-/**
- * Start a continuous propagation loop.
- * Updates at 100ms intervals (10fps propagation for smooth animation).
- */
-function startLoop(tles: TleSet[]) {
-  if (intervalId) clearInterval(intervalId);
-  isRunning = true;
-
-  intervalId = setInterval(() => {
-    if (!isRunning) return;
-    handlePropagate(tles);
-  }, 100);
-}
-
-/**
- * Stop the propagation loop.
- */
-function stopLoop() {
-  isRunning = false;
-  if (intervalId) {
-    clearInterval(intervalId);
-    intervalId = null;
-  }
-}
-
-// Clean up on worker termination
-self.addEventListener("beforeunload", stopLoop);

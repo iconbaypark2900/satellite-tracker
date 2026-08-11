@@ -27,6 +27,7 @@ import {
   Vector3,
 } from "three";
 import { propagateSatellite } from "@/lib/orbit-utils";
+import { propagationEngine } from "@/lib/propagation-engine";
 import { useSatelliteStore } from "@/lib/satellite-store";
 import { TleSet, Satellite } from "@/types";
 import { getGroupColor } from "@/lib/color-utils";
@@ -164,19 +165,44 @@ export default function SatelliteIcons({
     material.uniforms.uSelectedIndex.value = selectedIndex;
   }, [material, selectedIndex]);
 
-  // Propagate all satellites each frame into the position attribute
+  // Hand the fleet to the propagation engine (worker-backed)
+  useEffect(() => {
+    propagationEngine.init(tles);
+  }, [tles]);
+
+  // Update positions each frame: dead-reckon from the engine's buffered
+  // state; fall back to direct SGP4 while the worker warms up.
+  const scratch = useRef({ x: 0, y: 0, z: 0 });
   useFrame(() => {
     const points = pointsRef.current;
     if (!points) return;
     const simTime = useSatelliteStore.getState().timeControl.simTime;
+    const simMs = simTime.getTime();
+
+    propagationEngine.requestTick(simMs);
+    const engineReady =
+      propagationEngine.ready && propagationEngine.source === tles;
 
     let validChanged = false;
+    const out = scratch.current;
     for (let i = 0; i < count; i++) {
-      const result = propagateSatellite(tles[i], simTime);
-      if (result.isValid) {
-        positions[i * 3] = result.position[0];
-        positions[i * 3 + 1] = result.position[1];
-        positions[i * 3 + 2] = result.position[2];
+      let ok: boolean;
+      if (engineReady) {
+        ok = propagationEngine.getPositionInto(i, simMs, out);
+      } else {
+        const result = propagateSatellite(tles[i], simTime);
+        ok = result.isValid;
+        if (ok) {
+          out.x = result.position[0];
+          out.y = result.position[1];
+          out.z = result.position[2];
+        }
+      }
+
+      if (ok) {
+        positions[i * 3] = out.x;
+        positions[i * 3 + 1] = out.y;
+        positions[i * 3 + 2] = out.z;
         if (valid[i] !== 1) {
           valid[i] = 1;
           validChanged = true;

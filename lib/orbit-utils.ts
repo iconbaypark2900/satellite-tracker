@@ -249,26 +249,6 @@ export function propagateSatellite(
   }
 }
 
-/**
- * Propagate all satellites and return valid positions.
- * Used by the WebWorker for high-frequency updates.
- */
-export function propagateAll(
-  tleSets: TleSet[],
-  date: Date
-): Map<string, PropagationResult> {
-  const results = new Map<string, PropagationResult>();
-
-  for (const tle of tleSets) {
-    const result = propagateSatellite(tle, date);
-    if (result.isValid) {
-      results.set(tle.noradId, result);
-    }
-  }
-
-  return results;
-}
-
 // ─── ECEF Conversion ─────────────────────────────────── //
 
 /**
