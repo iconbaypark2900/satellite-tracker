@@ -14,6 +14,7 @@ import { useState } from "react";
 import SatelliteList from "@/components/ui/SatelliteList";
 import SatelliteDetail from "@/components/ui/SatelliteDetail";
 import ConstellationFilter from "@/components/ui/ConstellationFilter";
+import SpaceWeatherPanel from "@/components/ui/SpaceWeatherPanel";
 import { useSatelliteStore } from "@/lib/satellite-store";
 
 export default function Sidebar() {
@@ -46,6 +47,11 @@ export default function Sidebar() {
           collapsedGroups={collapsedGroups}
           onToggleGroup={toggleGroup}
         />
+      </div>
+
+      {/* Live NOAA space weather */}
+      <div className="border-t border-space-border shrink-0">
+        <SpaceWeatherPanel />
       </div>
 
       {/* Selected satellite detail (pinned to bottom) */}
