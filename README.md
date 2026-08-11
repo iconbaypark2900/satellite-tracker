@@ -144,7 +144,18 @@ Browser (R3F + Zustand)
                              + SunLighting + Starfield
 ```
 
-Views: **/globe** (3D scene) · **/sky** (alt/az polar plot for the observer) · **/passes** (rise/set predictions with visibility).
+Views: **/globe** (3D scene) · **/sky** (alt/az polar plot for the observer) · **/passes** (rise/set predictions with visibility) · **/stations** (multi-station access planner, Gantt timeline, .ics export) · **/conjunctions** (all-vs-all close-approach screener).
+
+Ops-grade tooling:
+
+- **Conjunction screening** — spatial-hash + linearized-interval-test
+  architecture in a dedicated worker; 396 satellites × 24h screened in
+  ~0.4s with TCA refined to <0.1s. Scales to full-constellation
+  catalogs via chunked ephemeris buffers.
+- **Ground-station access planning** — per-station elevation masks,
+  station×satellite Gantt timeline, calendar export (RFC 5545).
+- **Live NOAA SWPC space weather** — Kp/G-scale, solar wind, IMF Bz,
+  GOES X-ray flare class in the sidebar, with LEO-drag storm advisories.
 
 ---
 

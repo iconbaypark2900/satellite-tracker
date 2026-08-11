@@ -1,18 +1,18 @@
 {
-  "generatedAt": "2026-08-11T01:18:03.346Z",
+  "generatedAt": "2026-08-11T01:19:39.087Z",
   "tleCount": 396,
   "groups": {
     "OTHER": {
       "count": 389,
-      "fetchedAt": "2026-08-11T01:18:03.346Z"
+      "fetchedAt": "2026-08-11T01:19:39.087Z"
     },
     "STATIONS": {
       "count": 3,
-      "fetchedAt": "2026-08-11T01:18:03.346Z"
+      "fetchedAt": "2026-08-11T01:19:39.087Z"
     },
     "GOES": {
       "count": 4,
-      "fetchedAt": "2026-08-11T01:18:03.346Z"
+      "fetchedAt": "2026-08-11T01:19:39.087Z"
     }
   },
   "tles": [
