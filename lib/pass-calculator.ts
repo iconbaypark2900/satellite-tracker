@@ -1,11 +1,23 @@
 /**
- * Pass prediction calculator — compute azimuth, elevation, and visible
- * satellite passes for a given observer location.
+ * Pass prediction calculator — topocentric look angles, eclipse checks,
+ * and visible-pass prediction for a given observer location.
+ *
+ * Look angles use satellite.js's ECI→ECF→topocentric pipeline
+ * (ecfToLookAngles), which accounts for orbital altitude and Earth's
+ * oblateness. Rise/set are the el=0 horizon crossings, refined by
+ * bisection; a pass is reported iff its refined culmination elevation
+ * reaches MIN_PASS_ELEVATION_DEG.
  */
 
-import { propagateSatellite, eciToGeodetic } from "@/lib/orbit-utils";
-import { getSunPosition, getSunPositionFromDate } from "@/lib/sun-position";
-import { DEG_TO_RAD, RAD_TO_DEG, EARTH_RADIUS_KM } from "@/lib/constants";
+import * as satellite from "satellite.js";
+import { propagateSatellite, dateToJulian } from "@/lib/orbit-utils";
+import {
+  DEG_TO_RAD,
+  RAD_TO_DEG,
+  EARTH_RADIUS_KM,
+  AU_KM,
+  MIN_PASS_ELEVATION_DEG,
+} from "@/lib/constants";
 import { PassPrediction, ObserverLocation, TleSet } from "@/types";
 
 // ─── Observer Setup ──────────────────────────────────── //
@@ -22,11 +34,20 @@ export const DEFAULT_LOCATIONS: ObserverLocation[] = [
 
 // ─── Az/El Calculation ────────────────────────────────── //
 
+function observerGd(observer: ObserverLocation) {
+  return {
+    latitude: observer.lat * DEG_TO_RAD,
+    longitude: observer.lon * DEG_TO_RAD,
+    height: observer.alt, // km
+  };
+}
+
 /**
- * Compute the topocentric (observer-relative) az/el angles for a satellite
- * at a given time.
+ * Compute the topocentric (observer-relative) look angles for a satellite.
  *
- * @returns {azimuth, elevation} in degrees, or null if satellite is not above horizon.
+ * @returns azimuth [0, 360) and elevation [-90, 90] in degrees, slant
+ *   range in km — or null if propagation fails. Negative elevations are
+ *   real data (below the horizon), not clamped.
  */
 export function computeAzEl(
   tle: TleSet,
@@ -36,212 +57,228 @@ export function computeAzEl(
   const result = propagateSatellite(tle, date);
   if (!result.isValid) return null;
 
-  const { latitude: satLat, longitude: satLon, altitude: satAlt } = eciToGeodetic(
-    result.position,
-    date
+  const gmst = satellite.gstime(date);
+  const ecf = satellite.eciToEcf(
+    { x: result.position[0], y: result.position[1], z: result.position[2] },
+    gmst
   );
-
-  // Convert observer lat/lon to radians
-  const obsLat = observer.lat * DEG_TO_RAD;
-  const obsLon = observer.lon * DEG_TO_RAD;
-  const satLatRad = satLat * DEG_TO_RAD;
-  const satLonRad = satLon * DEG_TO_RAD;
-
-  // Compute topocentric coordinates
-  const lonDiff = satLonRad - obsLon;
-
-  // Horizontal coordinates (simplified — assumes flat Earth for nearby, spherical for far)
-  const cosLat = Math.cos(obsLat);
-  const sinLat = Math.sin(obsLat);
-
-  // East, North, Up components
-  const east = -Math.sin(lonDiff) * Math.cos(satLatRad);
-  const north =
-    cosLat * Math.sin(satLatRad) -
-    sinLat * Math.cos(satLatRad) * Math.cos(lonDiff);
-  const up =
-    sinLat * Math.sin(satLatRad) +
-    cosLat * Math.cos(satLatRad) * Math.cos(lonDiff);
-
-  // Azimuth (clockwise from North)
-  const azimuth = ((Math.atan2(east, north) * RAD_TO_DEG + 360) % 360);
-
-  // Elevation
-  const hyp = Math.sqrt(east * east + north * north);
-  const elevation = Math.atan2(up, hyp) * RAD_TO_DEG;
-
-  // Range (approximate)
-  const range = satAlt - observer.alt; // km (simplified)
+  const look = satellite.ecfToLookAngles(observerGd(observer), ecf);
 
   return {
-    azimuth,
-    elevation: elevation < -0.1 ? elevation : Math.max(0, elevation),
-    range,
+    azimuth: ((look.azimuth * RAD_TO_DEG) % 360 + 360) % 360,
+    elevation: look.elevation * RAD_TO_DEG,
+    range: look.rangeSat,
   };
+}
+
+// ─── Sun ─────────────────────────────────────────────── //
+
+/** Sun position in ECI kilometers at a given time. */
+export function sunEciKm(date: Date): [number, number, number] {
+  const { rsun } = satellite.sunPos(dateToJulian(date));
+  return [rsun[0] * AU_KM, rsun[1] * AU_KM, rsun[2] * AU_KM];
+}
+
+/**
+ * Sun look angles for an observer — reused by the sky view.
+ */
+export function sunAzEl(
+  date: Date,
+  observer: ObserverLocation
+): { azimuth: number; elevation: number } {
+  const sun = sunEciKm(date);
+  const gmst = satellite.gstime(date);
+  const ecf = satellite.eciToEcf({ x: sun[0], y: sun[1], z: sun[2] }, gmst);
+  const look = satellite.ecfToLookAngles(observerGd(observer), ecf);
+  return {
+    azimuth: ((look.azimuth * RAD_TO_DEG) % 360 + 360) % 360,
+    elevation: look.elevation * RAD_TO_DEG,
+  };
+}
+
+/**
+ * Cylindrical-umbra eclipse test: the satellite is in Earth's shadow iff
+ * it is on the anti-sun side AND within one Earth radius of the
+ * Earth–anti-sun axis.
+ */
+export function isSatEclipsed(
+  satEci: [number, number, number],
+  sunEci: [number, number, number]
+): boolean {
+  const sunLen = Math.hypot(sunEci[0], sunEci[1], sunEci[2]);
+  if (sunLen === 0) return false;
+  const ux = sunEci[0] / sunLen;
+  const uy = sunEci[1] / sunLen;
+  const uz = sunEci[2] / sunLen;
+
+  const along = satEci[0] * ux + satEci[1] * uy + satEci[2] * uz;
+  if (along >= 0) return false; // on the sun side
+
+  const px = satEci[0] - along * ux;
+  const py = satEci[1] - along * uy;
+  const pz = satEci[2] - along * uz;
+  return Math.hypot(px, py, pz) < EARTH_RADIUS_KM;
 }
 
 // ─── Pass Prediction ─────────────────────────────────── //
 
+const COARSE_STEP_MS = 30_000;
+const REFINE_TOLERANCE_MS = 1_000;
+
+/** Elevation at a time, or -90 when propagation fails (treated as below horizon). */
+function elevationAt(tle: TleSet, ms: number, observer: ObserverLocation): number {
+  const azEl = computeAzEl(tle, new Date(ms), observer);
+  return azEl ? azEl.elevation : -90;
+}
+
+/** Bisect the el=0 crossing between loMs and hiMs (exactly one crossing). */
+function bisectCrossing(
+  tle: TleSet,
+  observer: ObserverLocation,
+  loMs: number,
+  hiMs: number,
+  risingAtHi: boolean
+): number {
+  let lo = loMs;
+  let hi = hiMs;
+  while (hi - lo > REFINE_TOLERANCE_MS) {
+    const mid = (lo + hi) / 2;
+    const above = elevationAt(tle, mid, observer) >= 0;
+    if (above === risingAtHi) {
+      hi = mid;
+    } else {
+      lo = mid;
+    }
+  }
+  return (lo + hi) / 2;
+}
+
+/** Ternary-search the culmination time near a coarse maximum. */
+function refineCulmination(
+  tle: TleSet,
+  observer: ObserverLocation,
+  coarseMaxMs: number,
+  windowStartMs: number,
+  windowEndMs: number
+): number {
+  let lo = Math.max(windowStartMs, coarseMaxMs - COARSE_STEP_MS);
+  let hi = Math.min(windowEndMs, coarseMaxMs + COARSE_STEP_MS);
+  while (hi - lo > REFINE_TOLERANCE_MS) {
+    const m1 = lo + (hi - lo) / 3;
+    const m2 = hi - (hi - lo) / 3;
+    if (elevationAt(tle, m1, observer) < elevationAt(tle, m2, observer)) {
+      lo = m1;
+    } else {
+      hi = m2;
+    }
+  }
+  return (lo + hi) / 2;
+}
+
+/** Rough visual magnitude placeholder (no phase-angle model). */
+function estimateMagnitude(tle: TleSet, rangeKm: number): number {
+  const isStation = /ISS|ZARYA|TIANGONG|TIANHE|CSS|STATION/i.test(tle.name);
+  const stdMag = isStation ? -1.8 : 4.0;
+  const mag = stdMag + 5 * Math.log10(Math.max(rangeKm, 1) / 1000);
+  return Math.max(-6, Math.min(8, Math.round(mag * 10) / 10));
+}
+
 /**
- * Compute visible passes for a satellite over an observer location.
+ * Compute passes for a satellite over an observer location.
  *
- * Algorithm:
- * 1. Step through time in 30-second increments over a 24-hour window.
- * 2. Detect horizon crossings (el goes from negative to positive).
- * 3. For each rise, continue until set.
- * 4. Use parabolic interpolation to refine peak elevation.
- * 5. Check solar illumination (satellite must be in sunlight).
- *
- * @param tle - The satellite's TLE
- * @param observer - Observer location
- * @param startTime - Start of prediction window
- * @param hours - Number of hours to predict (default 24)
- * @param minElevation - Minimum elevation for a valid pass (default 10°)
+ * Rise/set are el=0 horizon crossings (bisection-refined to 1s); a pass
+ * is kept iff its refined maximum elevation ≥ minElevation. A satellite
+ * that never sets within the window (e.g. geostationary in view) yields
+ * a single pass spanning the window with `neverSets: true`.
  */
 export function predictPasses(
   tle: TleSet,
   observer: ObserverLocation,
   startTime: Date = new Date(),
   hours: number = 24,
-  minElevation: number = 10
+  minElevation: number = MIN_PASS_ELEVATION_DEG
 ): PassPrediction[] {
   const passes: PassPrediction[] = [];
+  const startMs = startTime.getTime();
+  const endMs = startMs + hours * 3600_000;
+  const totalSteps = Math.floor((endMs - startMs) / COARSE_STEP_MS);
 
-  const stepSec = 30;
-  const totalSteps = Math.floor((hours * 3600) / stepSec);
+  // Bail out early if the TLE never propagates
+  if (!computeAzEl(tle, startTime, observer)) return [];
 
-  let prevEl: number | null = null;
-  let inPass = false;
-  let passStart: Date | null = null;
-  let prevAz: number | null = null;
+  let inPass = elevationAt(tle, startMs, observer) >= 0;
+  let riseMs = startMs;
+  let roseAtWindowStart = inPass;
+  let coarseMaxEl = -90;
+  let coarseMaxMs = startMs;
 
-  // Track satellite position for orbit details
-  const sun = getSunPositionFromDate(startTime);
+  const closePass = (setMs: number, setAtWindowEnd: boolean) => {
+    const maxMs = refineCulmination(tle, observer, coarseMaxMs, riseMs, setMs);
+    const maxLook = computeAzEl(tle, new Date(maxMs), observer);
+    if (!maxLook || maxLook.elevation < minElevation) return;
 
-  for (let i = 0; i <= totalSteps; i++) {
-    const date = new Date(startTime.getTime() + i * stepSec * 1000);
-    const azEl = computeAzEl(tle, date, observer);
+    const startLook = computeAzEl(tle, new Date(riseMs), observer);
+    const endLook = computeAzEl(tle, new Date(setMs), observer);
 
-    if (!azEl) {
-      if (inPass) {
-        // End the pass
-        if (passStart) {
-          finalizePass(passes, tle, observer, passStart, date, prevAz, sun, minElevation);
-        }
-        inPass = false;
-        passStart = null;
-      }
-      prevEl = null;
-      continue;
-    }
+    const maxTime = new Date(maxMs);
+    const satAtMax = propagateSatellite(tle, maxTime);
+    const sun = sunEciKm(maxTime);
+    const isLit = satAtMax.isValid && !isSatEclipsed(satAtMax.position, sun);
+    const observerSunElevation = sunAzEl(maxTime, observer).elevation;
 
-    if (azEl.elevation >= minElevation) {
-      if (!inPass) {
-        inPass = true;
-        passStart = date;
-        prevAz = azEl.azimuth;
-      }
-    } else if (inPass && azEl.elevation < 0) {
-      // Satellite set below horizon
-      finalizePass(passes, tle, observer, passStart!, date, prevAz, sun, minElevation);
+    passes.push({
+      startTime: new Date(riseMs),
+      maxTime,
+      endTime: new Date(setMs),
+      maxElevation: maxLook.elevation,
+      startAz: startLook?.azimuth ?? maxLook.azimuth,
+      maxAz: maxLook.azimuth,
+      endAz: endLook?.azimuth ?? maxLook.azimuth,
+      isLit,
+      isVisible: isLit && observerSunElevation < -6,
+      neverSets: roseAtWindowStart && setAtWindowEnd,
+      magnitude: estimateMagnitude(tle, maxLook.range),
+    });
+  };
+
+  for (let i = 1; i <= totalSteps; i++) {
+    const t = startMs + i * COARSE_STEP_MS;
+    const el = elevationAt(tle, t, observer);
+
+    if (!inPass && el >= 0) {
+      riseMs = bisectCrossing(tle, observer, t - COARSE_STEP_MS, t, true);
+      roseAtWindowStart = false;
+      inPass = true;
+      coarseMaxEl = el;
+      coarseMaxMs = t;
+    } else if (inPass && el < 0) {
+      const setMs = bisectCrossing(tle, observer, t - COARSE_STEP_MS, t, false);
+      closePass(setMs, false);
       inPass = false;
-      passStart = null;
+      coarseMaxEl = -90;
+    } else if (inPass && el > coarseMaxEl) {
+      coarseMaxEl = el;
+      coarseMaxMs = t;
     }
-
-    prevEl = azEl.elevation;
-    prevAz = azEl.azimuth;
   }
 
-  // Handle pass that's still ongoing at end of window
-  if (inPass && passStart) {
-    const finalTime = new Date(startTime.getTime() + totalSteps * stepSec * 1000);
-    finalizePass(passes, tle, observer, passStart, finalTime, prevAz, sun, minElevation);
+  // Still above the horizon at the end of the window
+  if (inPass) {
+    closePass(endMs, true);
   }
 
   return passes;
 }
 
-/** Finalize a pass with peak elevation interpolation. */
-function finalizePass(
-  passes: PassPrediction[],
-  tle: TleSet,
-  observer: ObserverLocation,
-  startTime: Date,
-  endTime: Date,
-  startAz: number | null,
-  sun: ReturnType<typeof getSunPosition>,
-  minElevation: number
-): void {
-  // Find peak elevation by searching within the pass window
-  const passDurationMin = (endTime.getTime() - startTime.getTime()) / 60000;
-  const stepMin = passDurationMin / 50;
-
-  let maxEl = -90;
-  let maxTime: Date = startTime;
-  let maxAz = startAz ?? 0;
-
-  for (let t = 0; t <= passDurationMin; t += stepMin) {
-    const date = new Date(startTime.getTime() + t * 60000);
-    const azEl = computeAzEl(tle, date, observer);
-    if (azEl && azEl.elevation > maxEl) {
-      maxEl = azEl.elevation;
-      maxTime = date;
-      maxAz = azEl.azimuth;
-    }
-  }
-
-  // Check if satellite is illuminated (sunlit)
-  const satPos = propagateSatellite(tle, maxTime);
-  const isLit = satPos.isValid
-    ? isSunlit(satPos.position, sun)
-    : false;
-
-  passes.push({
-    startTime,
-    maxTime,
-    endTime,
-    maxElevation: maxEl,
-    startAz: startAz ?? 0,
-    maxAz,
-    endAz: maxAz,
-    isLit,
-    magnitude: -2, // Approximate; real implementation uses specific formulas
-  });
-}
-
-/** Check if a satellite position is in sunlight. */
-function isSunlit(
-  position: [number, number, number],
-  sun: ReturnType<typeof getSunPosition>
-): boolean {
-  const [x, y, z] = position;
-  const dot = x * sun.eci[0] + y * sun.eci[1] + z * sun.eci[2];
-
-  if (dot > 0) {
-    // Simple check: sun-facing
-    const r = Math.sqrt(x * x + y * y + z * z);
-    if (r > 0) {
-      const shadowAngle = Math.acos(dot / r);
-      const earthAngularRadius = Math.asin(EARTH_RADIUS_KM / r);
-      return shadowAngle < Math.PI / 2 - earthAngularRadius + 1 * DEG_TO_RAD;
-    }
-  }
-  return false;
-}
-
 /**
- * Compute the next visible pass (satellite in sunlight, above horizon).
+ * Next pass worth watching: the first pass that is actually visible
+ * (sunlit satellite, dark observer sky), else the first pass at all.
  */
 export function getNextVisiblePass(
   tle: TleSet,
   observer: ObserverLocation,
   startTime: Date = new Date()
 ): PassPrediction | null {
-  const passes = predictPasses(tle, observer, startTime, 12, 5);
-  for (const pass of passes) {
-    if (pass.isLit && pass.maxElevation > 10) {
-      return pass;
-    }
-  }
-  return passes.length > 0 ? passes[0] : null;
+  const passes = predictPasses(tle, observer, startTime, 24, MIN_PASS_ELEVATION_DEG);
+  return passes.find((p) => p.isVisible) ?? passes[0] ?? null;
 }

@@ -144,6 +144,10 @@ export interface PassPrediction {
   endAz: number;
   /** Whether the satellite is sunlit during the pass */
   isLit: boolean;
+  /** Sunlit satellite + dark observer sky — actually watchable */
+  isVisible?: boolean;
+  /** Above the horizon for the entire prediction window (e.g. GEO in view) */
+  neverSets?: boolean;
   /** Maximum brightness (magnitude) */
   magnitude: number;
 }
