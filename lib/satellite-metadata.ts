@@ -55,7 +55,7 @@ export const STATIC_SATELLITE_METADATA: Record<string, StaticSatelliteMetadata> 
     type: "Weather (POES)",
   },
   // Popular amateur-radio satellites
-  "07530": {
+  "7530": {
     operator: { name: "AMSAT", country: "USA" },
     launchDate: "1974-11-15",
     type: "Amateur radio (AO-7)",

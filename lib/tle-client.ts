@@ -57,8 +57,10 @@ export function parseTleText(raw: string, group: SatelliteGroup): TleSet[] {
 
       if (!line2.startsWith("2 ")) continue;
 
-      // Extract NORAD ID from column 3-7 of line 1
-      const noradId = line.substring(2, 7).trim();
+      // Extract NORAD ID from column 3-7 of line 1, normalized without
+      // leading zeros ("07530" and " 7530" are the same satellite —
+      // sources disagree on padding)
+      const noradId = line.substring(2, 7).trim().replace(/^0+(?=\d)/, "");
       const epoch = line.substring(18, 32).trim();
 
       tles.push({
