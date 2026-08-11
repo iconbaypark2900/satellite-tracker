@@ -11,9 +11,12 @@ import { useSatelliteStore } from "@/lib/satellite-store";
 import { Satellite } from "@/types";
 import { orbitalVelocity, orbitType } from "@/lib/orbit-utils";
 import { GROUP_COLORS } from "@/lib/constants";
+import { useSatCatRecord } from "@/hooks/useSatCatData";
 
 export default function SatelliteDetail() {
   const { selectedSatellite, setSelectedSatellite } = useSatelliteStore();
+  // SATCAT enrichment — renders identically when unavailable
+  const { record } = useSatCatRecord(selectedSatellite?.noradId ?? null);
 
   if (!selectedSatellite) {
     return (
@@ -36,10 +39,10 @@ export default function SatelliteDetail() {
   const fields = [
     { label: "Name", value: sat.name },
     { label: "Operator", value: sat.operator?.name ?? "—" },
-    { label: "Type", value: sat.type },
+    { label: "Type", value: record?.OBJECT_TYPE ?? sat.type },
     { label: "NORAD ID", value: sat.noradId },
-    { label: "Launch", value: sat.launchDate ?? "—" },
-    { label: "Country", value: sat.operator?.country ?? "—" },
+    { label: "Launch", value: record?.LAUNCH ?? sat.launchDate ?? "—" },
+    { label: "Country", value: record?.COUNTRY ?? sat.operator?.country ?? "—" },
     { label: "Orbit", value: oType },
     { label: "Period", value: `${sat.period.toFixed(1)} min` },
     { label: "Inclination", value: `${sat.inclination}°` },

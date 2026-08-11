@@ -68,6 +68,26 @@ export default function LocationInput() {
     }
   };
 
+  const [manualLat, setManualLat] = useState("");
+  const [manualLon, setManualLon] = useState("");
+
+  const handleManualSubmit = () => {
+    const lat = parseFloat(manualLat);
+    const lon = parseFloat(manualLon);
+    if (!Number.isFinite(lat) || Math.abs(lat) > 90) {
+      setError("Latitude must be between -90 and 90");
+      return;
+    }
+    if (!Number.isFinite(lon) || Math.abs(lon) > 180) {
+      setError("Longitude must be between -180 and 180");
+      return;
+    }
+    setError(null);
+    setManualLocation(lat, lon, 0, `${lat.toFixed(2)}°, ${lon.toFixed(2)}°`);
+    setManualLat("");
+    setManualLon("");
+  };
+
   return (
     <div className="dp">
       <h2 style={{ color: "#4137ff", marginBottom: "0.4rem", fontSize: "0.8rem" }}>
@@ -128,6 +148,40 @@ export default function LocationInput() {
           {loc.label}
         </div>
       ))}
+
+      {/* Manual coordinates */}
+      <div style={{ fontSize: "0.65rem", color: "#6f6d69", margin: "0.5rem 0 0.3rem" }}>
+        Coordinates:
+      </div>
+      <div style={{ display: "flex", gap: "0.4rem" }}>
+        <input
+          type="text"
+          inputMode="decimal"
+          className="sb"
+          style={{ marginBottom: 0 }}
+          placeholder="Lat (-90…90)"
+          value={manualLat}
+          onChange={(e) => setManualLat(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && handleManualSubmit()}
+        />
+        <input
+          type="text"
+          inputMode="decimal"
+          className="sb"
+          style={{ marginBottom: 0 }}
+          placeholder="Lon (-180…180)"
+          value={manualLon}
+          onChange={(e) => setManualLon(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && handleManualSubmit()}
+        />
+        <button
+          className="sb"
+          style={{ width: "auto", marginBottom: 0, padding: "0.25rem 0.7rem" }}
+          onClick={handleManualSubmit}
+        >
+          Set
+        </button>
+      </div>
 
       {/* Geolocation button */}
       <button

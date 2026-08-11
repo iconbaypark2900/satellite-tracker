@@ -13,7 +13,8 @@ import { TLE_CACHE_TTL } from "@/lib/constants";
 import { Satellite, TleSet, SatelliteGroup, SatelliteOperator } from "@/types";
 import { GROUP_COLORS } from "@/lib/constants";
 import { getGroupColor } from "@/lib/color-utils";
-import { computeOrbitalParams } from "@/lib/orbit-utils";
+import { computeOrbitalParams, parseIntlDesignator } from "@/lib/orbit-utils";
+import { STATIC_SATELLITE_METADATA } from "@/lib/satellite-metadata";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -21,13 +22,18 @@ const fetcher = (url: string) => fetch(url).then((r) => r.json());
 function buildSatellite(tle: TleSet): Satellite {
   const group = (tle.group || "OTHER") as SatelliteGroup;
   const params = computeOrbitalParams(tle);
+
+  // Metadata priority: curated static record > TLE-derived > group inference
+  const staticMeta = STATIC_SATELLITE_METADATA[tle.noradId];
+  const designator = parseIntlDesignator(tle.line1);
+
   return {
     noradId: tle.noradId,
     name: tle.name,
     tle: tle,
     group,
-    type: inferType(group),
-    operator: inferOperator(group),
+    type: staticMeta?.type ?? inferType(group),
+    operator: staticMeta?.operator ?? inferOperator(group),
     period: params.period ?? 0,
     inclination: params.inclination ?? 0,
     raan: params.raan ?? 0,
@@ -35,7 +41,7 @@ function buildSatellite(tle: TleSet): Satellite {
     perigee: params.perigee ?? 0,
     altitude: params.altitude ?? 0,
     color: getGroupColor(group),
-    launchDate: undefined,
+    launchDate: staticMeta?.launchDate ?? designator?.intlDesignator,
   };
 }
 

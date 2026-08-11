@@ -12,17 +12,40 @@ import { DEFAULT_LOCATIONS } from "@/lib/pass-calculator";
 
 const STORAGE_KEY = "satellite-tracker:observer-location";
 
+/** Hydrate from localStorage only once per app load — a remount must not
+ *  clobber a location the user just set via geolocation or manual entry. */
+let hasHydrated = false;
+
+function isValidLocation(loc: unknown): loc is ObserverLocation {
+  if (typeof loc !== "object" || loc === null) return false;
+  const l = loc as Record<string, unknown>;
+  return (
+    typeof l.lat === "number" &&
+    Number.isFinite(l.lat) &&
+    Math.abs(l.lat) <= 90 &&
+    typeof l.lon === "number" &&
+    Number.isFinite(l.lon) &&
+    Math.abs(l.lon) <= 180 &&
+    typeof l.label === "string"
+  );
+}
+
 export function useLocation() {
   const { observer, setObserver } = useSatelliteStore();
   const setObserverFn = useSatelliteStore((s) => s.setObserver);
 
-  // Load saved location from localStorage on mount
+  // Load saved location from localStorage on first mount only
   useEffect(() => {
+    if (hasHydrated) return;
+    hasHydrated = true;
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        setObserverFn(parsed);
+        if (isValidLocation(parsed)) {
+          const alt = typeof (parsed as { alt?: unknown }).alt === "number" ? (parsed as { alt: number }).alt : 0;
+          setObserverFn({ ...parsed, alt });
+        }
       } catch {
         // Ignore parse errors
       }

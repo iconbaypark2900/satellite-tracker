@@ -32,17 +32,18 @@ export async function fetchSatCatRecords(
   noradIds: string[],
   signal?: AbortSignal
 ): Promise<SatCatRecord[]> {
-  const uncachedIds = noradIds.filter(
-    (id) => !satcatCache.has(id) || !isCacheFresh(id)
-  );
+  // Celestrak's CATNR parameter takes a SINGLE catalog number — fetch
+  // sequentially, capped, so one detail-panel request can't fan out wide.
+  const uncachedIds = noradIds
+    .filter((id) => !satcatCache.has(id) || !isCacheFresh(id))
+    .slice(0, 12);
 
-  if (uncachedIds.length > 0) {
+  for (const id of uncachedIds) {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000);
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
 
     try {
-      // Celestrak SATCAT API accepts comma-separated NORAD IDs
-      const url = `${SATCAT_API_URL}?CATNR=${uncachedIds.join(",")}&FORMAT=JSON`;
+      const url = `${SATCAT_API_URL}?CATNR=${encodeURIComponent(id)}&FORMAT=JSON`;
       const response = await fetch(url, {
         signal: signal ?? controller.signal,
         headers: { Accept: "application/json" },
@@ -57,14 +58,17 @@ export async function fetchSatCatRecords(
         );
       }
 
-      const records: SatCatRecord[] = await response.json();
+      const body = await response.json();
+      // Celestrak returns an array; tolerate a bare object too
+      const records: SatCatRecord[] = Array.isArray(body) ? body : [body];
 
-      // Cache results
       records.forEach((record) => {
-        satcatCache.set(record.NORAD_CAT_ID, {
-          data: record,
-          fetchedAt: Date.now(),
-        });
+        if (record?.NORAD_CAT_ID) {
+          satcatCache.set(String(record.NORAD_CAT_ID), {
+            data: record,
+            fetchedAt: Date.now(),
+          });
+        }
       });
     } catch (error) {
       if (error instanceof Error && error.name === "AbortError") {
