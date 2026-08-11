@@ -55,6 +55,26 @@ export function parseTleElements(line2: string): {
 }
 
 /**
+ * Parse the international designator from TLE line 1 (columns 10-17),
+ * e.g. "98067A  " → { intlDesignator: "1998-067A", launchYear: 1998 }.
+ * Years ≥ 57 are 19xx (Sputnik era), otherwise 20xx.
+ */
+export function parseIntlDesignator(
+  line1: string
+): { intlDesignator: string; launchYear: number } | null {
+  if (!line1 || line1.length < 17) return null;
+  const raw = line1.substring(9, 17).trim();
+  const match = raw.match(/^(\d{2})(\d{3})([A-Z]{1,3})$/);
+  if (!match) return null;
+  const yy = parseInt(match[1], 10);
+  const launchYear = yy >= 57 ? 1900 + yy : 2000 + yy;
+  return {
+    intlDesignator: `${launchYear}-${match[2]}${match[3]}`,
+    launchYear,
+  };
+}
+
+/**
  * Compute orbital parameters (period, apogee, perigee, altitude)
  * from a TLE and update a satellite's metadata.
  */
@@ -137,6 +157,49 @@ export function getSunDirection(jd: number): [number, number, number] {
 // ─── SGP4 Propagation ────────────────────────────────── //
 
 /**
+ * Module-level satrec cache. Parsing a TLE with twoline2satrec is by far
+ * the most expensive step of a propagation call, and TLEs are immutable —
+ * key by both lines so a refreshed TLE (new epoch) gets a fresh satrec.
+ * `null` marks a TLE that failed to parse, so we don't retry every frame.
+ */
+const satrecCache = new Map<string, satellite.SatRec | null>();
+const SATREC_CACHE_MAX = 16384;
+const warnedNoradIds = new Set<string>();
+
+function getSatrec(tle: TleSet): satellite.SatRec | null {
+  const key = tle.line1 + tle.line2;
+  const cached = satrecCache.get(key);
+  if (cached !== undefined) return cached;
+
+  let satrec: satellite.SatRec | null = null;
+  try {
+    const parsed = satellite.twoline2satrec(tle.line1, tle.line2);
+    satrec = parsed.error === 0 ? parsed : null;
+  } catch {
+    satrec = null;
+  }
+
+  if (satrec === null && !warnedNoradIds.has(tle.noradId)) {
+    warnedNoradIds.add(tle.noradId);
+    console.warn(`SGP4: failed to initialize satrec for ${tle.name} (#${tle.noradId})`);
+  }
+
+  if (satrecCache.size >= SATREC_CACHE_MAX) {
+    // Drop the oldest entry (Map preserves insertion order)
+    const oldest = satrecCache.keys().next().value;
+    if (oldest !== undefined) satrecCache.delete(oldest);
+  }
+  satrecCache.set(key, satrec);
+  return satrec;
+}
+
+const INVALID_RESULT: PropagationResult = {
+  position: [0, 0, 0],
+  velocity: [0, 0, 0],
+  isValid: false,
+};
+
+/**
  * Propagate a single satellite at a given time using its TLE.
  *
  * @param tle - The TLE set (must have line1 and line2)
@@ -149,36 +212,27 @@ export function propagateSatellite(
 ): PropagationResult {
   // If we don't have valid TLE lines, return invalid
   if (!tle.line1 || !tle.line2) {
-    return {
-      position: [0, 0, 0],
-      velocity: [0, 0, 0],
-      isValid: false,
-    };
+    return INVALID_RESULT;
+  }
+
+  const satRec = getSatrec(tle);
+  if (!satRec) {
+    return INVALID_RESULT;
   }
 
   try {
-    // satellite.js v6: twoline2satrec(line1, line2)
-    const satRec = satellite.twoline2satrec(tle.line1, tle.line2);
-
     const result = satellite.propagate(satRec, date);
     if (!result || !result.position || !result.velocity) {
-      return {
-        position: [0, 0, 0],
-        velocity: [0, 0, 0],
-        isValid: false,
-      };
+      return INVALID_RESULT;
     }
 
     const pos = result.position as { x: number | null; y: number | null; z: number | null };
     const vel = result.velocity as { x: number | null; y: number | null; z: number | null };
 
     if (!pos || !vel || pos.x === null || pos.y === null || pos.z === null ||
-        vel.x === null || vel.y === null || vel.z === null) {
-      return {
-        position: [0, 0, 0],
-        velocity: [0, 0, 0],
-        isValid: false,
-      };
+        vel.x === null || vel.y === null || vel.z === null ||
+        Number.isNaN(pos.x) || Number.isNaN(pos.y) || Number.isNaN(pos.z)) {
+      return INVALID_RESULT;
     }
 
     return {
@@ -187,11 +241,11 @@ export function propagateSatellite(
       isValid: true,
     };
   } catch {
-    return {
-      position: [0, 0, 0],
-      velocity: [0, 0, 0],
-      isValid: false,
-    };
+    if (!warnedNoradIds.has(tle.noradId)) {
+      warnedNoradIds.add(tle.noradId);
+      console.warn(`SGP4: propagation threw for ${tle.name} (#${tle.noradId})`);
+    }
+    return INVALID_RESULT;
   }
 }
 
@@ -284,7 +338,7 @@ export function eciToGeodetic(
     return {
       latitude: result.latitude * RAD_TO_DEG,
       longitude: result.longitude * RAD_TO_DEG,
-      altitude: result.height / 1000, // meters → km
+      altitude: result.height, // satellite.js returns km
     };
   } catch {
     // Fallback to simple ECEF → geodetic conversion

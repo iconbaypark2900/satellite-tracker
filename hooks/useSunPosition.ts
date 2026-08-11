@@ -4,16 +4,23 @@
  */
 
 import { useMemo } from "react";
-import { useTimeControl } from "@/hooks/useTimeControl";
+import { useSatelliteStore } from "@/lib/satellite-store";
 import { getSunPositionFromDate } from "@/lib/sun-position";
 import { SunPosition } from "@/lib/sun-position";
 
+/** The sun moves ~0.25°/min — recomputing more often than once per
+ *  sim-minute is invisible, and the coarse selector keeps consumers from
+ *  re-rendering on every 10Hz time tick. */
+const SUN_TIME_BUCKET_MS = 60000;
+
 export function useSunPosition(): SunPosition | null {
-  const { simTime } = useTimeControl();
+  const timeBucket = useSatelliteStore((s) =>
+    Math.floor(s.timeControl.simTime.getTime() / SUN_TIME_BUCKET_MS)
+  );
 
   return useMemo(() => {
-    return getSunPositionFromDate(simTime);
-  }, [simTime]);
+    return getSunPositionFromDate(new Date(timeBucket * SUN_TIME_BUCKET_MS));
+  }, [timeBucket]);
 }
 
 export function useSunIllumination(

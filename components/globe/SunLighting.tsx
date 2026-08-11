@@ -6,24 +6,22 @@
 
 "use client";
 
-import { useThree, useFrame } from "@react-three/fiber";
-import { DirectionalLight, AmbientLight, Color, Vector3 } from "three";
-import { useEffect, useRef, useMemo } from "react";
-import { getSunPositionFromDate } from "@/lib/sun-position";
-import { useSatelliteStore } from "@/lib/satellite-store";
-import { unixToJulian } from "@/lib/orbit-utils";
+import { useFrame } from "@react-three/fiber";
+import { Color } from "three";
+import { useRef } from "react";
+import { useSunPosition } from "@/hooks/useSunPosition";
 
 const SUN_DISTANCE = 1e8; // km (effectively infinite)
 
-export default function SunLighting({ simTime }: { simTime: Date }) {
+export default function SunLighting() {
   const directionalLightRef = useRef<any>(null);
   const ambientLightRef = useRef<any>(null);
 
-  const sunPos = useMemo(() => getSunPositionFromDate(simTime), [simTime]);
+  const sunPos = useSunPosition();
 
   // Update light position as time advances
   useFrame(() => {
-    if (directionalLightRef.current) {
+    if (directionalLightRef.current && sunPos) {
       directionalLightRef.current.position.set(
         sunPos.eci[0] * SUN_DISTANCE,
         sunPos.eci[1] * SUN_DISTANCE,

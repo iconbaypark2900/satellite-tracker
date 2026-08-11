@@ -16,9 +16,10 @@ const STAR_COUNT = 2000;
 const STAR_SPHERE_RADIUS = 50000; // Very far away (km)
 
 export default function Starfield() {
-  // Generate procedural star positions on a sphere
+  // Generate procedural star positions + colors on a sphere
   const starGeometry = useMemo(() => {
     const positions = new Float32Array(STAR_COUNT * 3);
+    const colors = new Float32Array(STAR_COUNT * 3);
     for (let i = 0; i < STAR_COUNT; i++) {
       const phi = Math.acos(2 * Math.random() - 1);
       const theta = 2 * Math.PI * Math.random();
@@ -27,47 +28,37 @@ export default function Starfield() {
       positions[i * 3] = r * Math.sin(phi) * Math.cos(theta);
       positions[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
       positions[i * 3 + 2] = r * Math.cos(phi);
+
+      // White to slightly blue-ish
+      const t = Math.random() * 0.8 + 0.2;
+      colors[i * 3] = t;
+      colors[i * 3 + 1] = t;
+      colors[i * 3 + 2] = 0.8 * t;
     }
 
     const geometry = new BufferGeometry();
     geometry.setAttribute("position", new BufferAttribute(positions, 3));
+    geometry.setAttribute("color", new BufferAttribute(colors, 3));
     return geometry;
   }, []);
 
-  // Generate star colors (white to slightly blue-ish)
-  const starColors = useMemo(() => {
-    const colors = new Float32Array(STAR_COUNT * 3);
-    for (let i = 0; i < STAR_COUNT; i++) {
-      const b = Math.random();
-      const t = b * 0.8 + 0.2;
-      colors[i * 3] = 1 * t;
-      colors[i * 3 + 1] = 1 * t;
-      colors[i * 3 + 2] = 1 * 0.8 * t;
-    }
-    return colors;
-  }, []);
-
-  // Star material (additive blending for glow effect)
+  // Screen-space star size: sizeAttenuation would shrink stars at
+  // 50000 units to well under a pixel.
   const starMaterial = useMemo(
     () =>
       new PointsMaterial({
-        size: 70,
-        sizeAttenuation: true,
+        size: 2,
+        sizeAttenuation: false,
         vertexColors: true,
         transparent: true,
         opacity: 0.8,
         toneMapped: false,
         color: new Color(0xffffff),
         blending: AdditiveBlending,
+        depthWrite: false,
       }),
     []
   );
 
-  // Attach colors
-  starGeometry.setAttribute(
-    "color",
-    new BufferAttribute(starColors, 3)
-  );
-
-  return <points geometry={starGeometry} material={starMaterial} />;
+  return <points geometry={starGeometry} material={starMaterial} frustumCulled={false} />;
 }

@@ -15,12 +15,10 @@ import { OrbitControls, Stats } from "@react-three/drei";
 import { useEffect, Suspense, useState, useMemo } from "react";
 import { useSatelliteStore } from "@/lib/satellite-store";
 import Earth from "./Earth";
-import SatelliteIcons from "./SatelliteIcons";
-import OrbitPaths from "./OrbitPaths";
-import GroundTracks from "./GroundTracks";
 import SunLighting from "./SunLighting";
 import Starfield from "./Starfield";
-import { TleSet } from "@/types";
+import SatelliteLayer from "./SatelliteLayer";
+import { TleSet, Satellite } from "@/types";
 
 /** Earth radius used for rendering (km). */
 const EARTH_RADIUS = 6371;
@@ -41,7 +39,10 @@ function isWebGLAvailable(): boolean {
 }
 
 export default function GlobeScene() {
-  const { timeControl, selectedSatellite, getVisibleSatellites } = useSatelliteStore();
+  // Granular subscriptions — never to simTime, which ticks at 10Hz.
+  // Per-frame consumers read time via getState() inside useFrame.
+  const satellites = useSatelliteStore((s) => s.satellites);
+  const filters = useSatelliteStore((s) => s.constellationFilters);
   const [webglAvailable, setWebglAvailable] = useState(true);
 
   // Check WebGL availability on mount (client-side only)
@@ -49,11 +50,17 @@ export default function GlobeScene() {
     setWebglAvailable(isWebGLAvailable());
   }, []);
 
-  // Extract visible satellites with TLEs for rendering
-  const visibleSats = getVisibleSatellites();
-  const tleSets: TleSet[] = visibleSats
-    .filter((s) => s.tle)
-    .map((s) => s.tle!);
+  // Visible satellites + lookup structures, stable across time ticks
+  const { tleSets, satMap } = useMemo(() => {
+    const tleSets: TleSet[] = [];
+    const satMap = new Map<string, Satellite>();
+    satellites.forEach((sat) => {
+      if (filters[sat.group as string] === false) return;
+      satMap.set(sat.noradId, sat);
+      if (sat.tle) tleSets.push(sat.tle);
+    });
+    return { tleSets, satMap };
+  }, [satellites, filters]);
 
   // Fallback UI when WebGL is not available
   if (!webglAvailable) {
@@ -74,23 +81,15 @@ export default function GlobeScene() {
 
   return (
     <Canvas
-      camera={{ position: [0, 0, EARTH_RADIUS * 2.5], fov: 45, near: 1, far: EARTH_RADIUS * 10 }}
+      camera={{ position: [0, 0, EARTH_RADIUS * 2.5], fov: 45, near: 10, far: 150000 }}
       gl={{ antialias: true, alpha: false, preserveDrawingBuffer: false }}
-      onPointerMissed={() => useSatelliteStore.getState().setSelectedSatellite(null)}
     >
       {/* Lighting & Environment */}
       <Suspense fallback={null}>
-        <SunLighting simTime={timeControl.simTime} />
+        <SunLighting />
         <Starfield />
         <Earth />
-        <OrbitPaths tles={tleSets} simTime={timeControl.simTime} />
-        <GroundTracks tles={tleSets} simTime={timeControl.simTime} />
-        <SatelliteIcons
-          tles={tleSets}
-          simTime={timeControl.simTime}
-          selectedNorad={selectedSatellite?.noradId ?? null}
-          onSelect={useSatelliteStore.getState().setSelectedSatellite}
-        />
+        <SatelliteLayer tles={tleSets} satellites={satMap} />
       </Suspense>
 
       {/* Controls */}

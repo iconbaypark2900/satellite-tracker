@@ -1,109 +1,125 @@
 /**
- * GroundTracks.tsx — Render satellite ground tracks (projected onto
- * Earth's surface) as dashed lines.
+ * GroundTracks.tsx — Render ground tracks (satellite paths projected onto
+ * Earth's surface) for the selected and hovered satellites only.
  *
- * Computes ECEF positions over a ±8-hour window and projects to lat/lon.
+ * Like OrbitPaths, this used to compute every satellite's track on every
+ * render (~160 SGP4 solves each) — scoped to ≤2 satellites and a coarse
+ * time bucket it is effectively free.
  */
 
 "use client";
 
 import { useMemo } from "react";
-import { Group, Color } from "three";
-import { useThree } from "@react-three/fiber";
+import { Color } from "three";
 import { propagateSatellite, eciToEcef } from "@/lib/orbit-utils";
+import { useSatelliteStore } from "@/lib/satellite-store";
 import { TleSet } from "@/types";
 import { getGroupColor } from "@/lib/color-utils";
+import { GROUND_TRACK_WINDOW_MIN } from "@/lib/constants";
 
 // Earth radius for projecting ground tracks onto the surface
 const EARTH_RADIUS = 6371;
 
+const SEGMENTS = 160;
+
+/** Recompute when sim time moves by this much (window is ±8h). */
+const TRACK_RECOMPUTE_BUCKET_MS = 60 * 60000;
+
 interface Props {
   tles: TleSet[];
-  simTime: Date;
+  selectedNorad: string | null;
+  hoveredNorad?: string | null;
 }
 
-export default function GroundTracks({ tles, simTime }: Props) {
-  const { scene } = useThree();
+function computeTrackPoints(tle: TleSet, centerMs: number): Float32Array {
+  const stepMin = (GROUND_TRACK_WINDOW_MIN * 2) / SEGMENTS; // ±8h
+  const positions: number[] = [];
 
-  const tracks = useMemo(() => {
-    const allPoints: number[] = [];
-    const allColors: number[] = [];
-    const segmentIndices: Array<{ start: number; count: number }> = [];
+  for (let i = 0; i <= SEGMENTS; i++) {
+    const tMin = -GROUND_TRACK_WINDOW_MIN + i * stepMin;
+    const date = new Date(centerMs + tMin * 60000);
+    const result = propagateSatellite(tle, date);
 
-    const stepMin = 8 * 60 / 160; // ±8h window, 160 points
-
-    tles.forEach((tle) => {
-      if (!tle.line1 || !tle.line2) return;
-
-      const group = tle.group ?? "OTHER";
-      const color = new Color(getGroupColor(group));
-      const colorArr = [color.r, color.g, color.b];
-
-      const startIdx = allPoints.length / 3;
-
-      for (let i = 0; i <= 160; i++) {
-        const tMin = -480 + i * stepMin;
-        const date = new Date(simTime.getTime() + tMin * 60000);
-
-        const result = propagateSatellite(tle, date);
-
-        if (result.isValid) {
-          // Convert ECI → ECEF
-          const ecef = eciToEcef(result.position, date);
-
-          // Normalize to Earth's surface
-          const r = Math.sqrt(ecef[0] ** 2 + ecef[1] ** 2 + ecef[2] ** 2);
-          if (r > 0) {
-            const s = EARTH_RADIUS / r;
-            allPoints.push(ecef[0] * s, ecef[1] * s, ecef[2] * s);
-            allColors.push(colorArr[0] * 0.5, colorArr[1] * 0.5, colorArr[2] * 0.5);
-          }
+    if (result.isValid) {
+      const ecef = eciToEcef(result.position, date);
+      const r = Math.sqrt(ecef[0] ** 2 + ecef[1] ** 2 + ecef[2] ** 2);
+      if (r > 0) {
+        const s = EARTH_RADIUS / r;
+        if (positions.length > 0) {
+          // Duplicate previous point for continuous line in LINES mode
+          positions.push(
+            positions[positions.length - 3],
+            positions[positions.length - 2],
+            positions[positions.length - 1]
+          );
         }
+        positions.push(ecef[0] * s, ecef[1] * s, ecef[2] * s);
       }
+    }
+  }
 
-      segmentIndices.push({ start: startIdx, count: (allPoints.length / 3) - startIdx });
-    });
+  return new Float32Array(positions);
+}
 
-    return { points: allPoints, colors: allColors, segments: segmentIndices };
-  }, [tles, simTime]);
+/** Dim a group color to 50% brightness for surface tracks. */
+function dimColor(colorStr: string): string {
+  const c = new Color(colorStr);
+  return `rgb(${Math.round(c.r * 127)}, ${Math.round(c.g * 127)}, ${Math.round(c.b * 127)})`;
+}
 
-  if (tracks.points.length === 0) return null;
+export default function GroundTracks({ tles, selectedNorad, hoveredNorad }: Props) {
+  const timeBucket = useSatelliteStore((s) =>
+    Math.floor(s.timeControl.simTime.getTime() / TRACK_RECOMPUTE_BUCKET_MS)
+  );
+
+  const targets = useMemo(() => {
+    const wanted: Array<{ tle: TleSet; color: string; opacity: number }> = [];
+    for (const tle of tles) {
+      if (!tle.line1 || !tle.line2) continue;
+      if (tle.noradId === selectedNorad) {
+        wanted.push({ tle, color: "#ffffff", opacity: 0.7 });
+      } else if (tle.noradId === hoveredNorad) {
+        wanted.push({
+          tle,
+          color: dimColor(getGroupColor(tle.group ?? "OTHER")),
+          opacity: 0.45,
+        });
+      }
+    }
+    return wanted;
+  }, [tles, selectedNorad, hoveredNorad]);
+
+  const tracks = useMemo(
+    () =>
+      targets.map(({ tle, color, opacity }) => ({
+        noradId: tle.noradId,
+        points: computeTrackPoints(tle, timeBucket * TRACK_RECOMPUTE_BUCKET_MS),
+        color,
+        opacity,
+      })),
+    [targets, timeBucket]
+  );
+
+  if (tracks.length === 0) return null;
 
   return (
     <group>
-      {tracks.segments.map((seg, idx) => {
-        if (seg.count < 2) return null;
-        return (
-          <lineSegments key={idx}>
-            <bufferGeometry>
-              <bufferAttribute
-                attach="attributes-position"
-                args={[
-                  new Float32Array(
-                    tracks.points.slice(seg.start * 3, (seg.start + seg.count) * 3)
-                  ),
-                  3,
-                ]}
-              />
-              <bufferAttribute
-                attach="attributes-color"
-                args={[
-                  new Float32Array(
-                    tracks.colors.slice(seg.start * 3, (seg.start + seg.count) * 3)
-                  ),
-                  3,
-                ]}
-              />
-            </bufferGeometry>
-            <lineBasicMaterial
-              vertexColors
-              transparent
-              opacity={0.3}
-              toneMapped={false}
-            />
-          </lineSegments>
-        );
-      })}
+      {tracks.map((track) => (
+        <lineSegments key={`${track.noradId}-${track.color}`} userData={{ noradId: track.noradId }}>
+          <bufferGeometry attach="geometry">
+            <bufferAttribute attach="attributes-position" args={[track.points, 3]} />
+          </bufferGeometry>
+          <lineBasicMaterial
+            attach="material"
+            color={track.color}
+            transparent
+            opacity={track.opacity}
+            toneMapped={false}
+            depthWrite={false}
+            depthTest={true}
+          />
+        </lineSegments>
+      ))}
     </group>
   );
 }

@@ -6,6 +6,11 @@
 
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
+import { enableMapSet } from "immer";
+
+// The store keeps satellites in a Map; immer needs the MapSet plugin to
+// draft it (addSatellite/updateSatellite throw without this).
+enableMapSet();
 import {
   SatelliteStoreState,
   Satellite,
@@ -192,8 +197,7 @@ export const useSatelliteStore = create<SatelliteStore>()(
       if (!sat.tle) return [];
       const { predictPasses } = await import("@/lib/pass-calculator");
       const observer = get().observer;
-      const { predictPasses: predict } = await import("@/lib/pass-calculator");
-      return predict(sat.tle, observer, new Date(), hours, 5);
+      return predictPasses(sat.tle, observer, new Date(), hours);
     },
   }))
 );
