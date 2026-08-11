@@ -20,6 +20,7 @@ import {
   ObserverLocation,
   PassPrediction,
   TleSet,
+  GroundStation,
 } from "@/types";
 
 // ─── Initial State ───────────────────────────────────── //
@@ -40,6 +41,13 @@ function initialConstellationFilters(): ConstellationFilter {
 }
 
 export interface SatelliteStore extends SatelliteStoreState {
+  // ── Ground stations (access planner) ────────────────── //
+  groundStations: GroundStation[];
+  addGroundStation: (station: GroundStation) => void;
+  updateGroundStation: (id: string, updates: Partial<GroundStation>) => void;
+  removeGroundStation: (id: string) => void;
+  setGroundStations: (stations: GroundStation[]) => void;
+
   // ── Mutators ────────────────────────────────────────── //
   setSatellites: (sats: Map<string, Satellite> | Satellite[]) => void;
   addSatellite: (sat: Satellite) => void;
@@ -88,6 +96,31 @@ export const useSatelliteStore = create<SatelliteStore>()(
     tleAge: Infinity,
     isLoading: true,
     error: null,
+    groundStations: [],
+
+    // ── Ground stations ────────────────────────────────── //
+    addGroundStation: (station) =>
+      set((state) => {
+        state.groundStations.push(station);
+      }),
+
+    updateGroundStation: (id, updates) =>
+      set((state) => {
+        const idx = state.groundStations.findIndex((s) => s.id === id);
+        if (idx >= 0) {
+          state.groundStations[idx] = { ...state.groundStations[idx], ...updates };
+        }
+      }),
+
+    removeGroundStation: (id) =>
+      set((state) => {
+        state.groundStations = state.groundStations.filter((s) => s.id !== id);
+      }),
+
+    setGroundStations: (stations) =>
+      set((state) => {
+        state.groundStations = stations;
+      }),
 
     // ── Mutators ───────────────────────────────────────── //
     setSatellites: (sats) =>

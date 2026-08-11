@@ -152,6 +152,30 @@ export interface PassPrediction {
   magnitude: number;
 }
 
+/** A ground station for access-window planning. */
+export interface GroundStation {
+  id: string;
+  name: string;
+  /** Latitude in degrees */
+  lat: number;
+  /** Longitude in degrees */
+  lon: number;
+  /** Altitude in km */
+  alt: number;
+  /** Minimum usable elevation for this station (degrees) */
+  minElevation: number;
+}
+
+/** One access window: a pass of one satellite over one station. */
+export interface AccessEvent {
+  stationId: string;
+  stationName: string;
+  noradId: string;
+  satelliteName: string;
+  group: SatelliteGroup;
+  pass: PassPrediction;
+}
+
 /** Observer location for pass predictions. */
 export interface ObserverLocation {
   /** Latitude in degrees */

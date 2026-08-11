@@ -19,6 +19,7 @@ const NAV_LINKS = [
   { href: "/globe", label: "🌍 Globe" },
   { href: "/sky", label: "🔭 Sky" },
   { href: "/passes", label: "📅 Passes" },
+  { href: "/stations", label: "📡 Stations" },
 ];
 
 export default function Header() {
