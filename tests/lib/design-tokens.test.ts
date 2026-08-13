@@ -109,3 +109,53 @@ describe("token plumbing", () => {
     expect(TW).toMatch(/lineHeight/);
   });
 });
+
+describe("tokens are declared in exactly one place", () => {
+  const APP_CSS = read("app/globals.css");
+
+  /**
+   * The bug these guard against, which the tests above could not see:
+   *
+   * app/globals.css imported styles/globals.css and then re-declared the same
+   * :root tokens AFTER the import. That block silently won. So
+   * --color-text-muted stayed at #6f6d69 (3.81:1, below AA) and --font-mono
+   * stayed at "Monaco" while the app downloaded Roboto Mono and Inter and
+   * rendered neither — even though the tests above passed, because they read
+   * the source file that was being overridden rather than the CSS the browser
+   * actually receives.
+   *
+   * Three files defined the same tokens. Unifying two of them fixed nothing.
+   */
+  it("app/globals.css does not redeclare the tokens it imports", () => {
+    const rootBlocks = APP_CSS.match(/:root\s*\{[\s\S]*?\}/g) ?? [];
+    expect(rootBlocks).toEqual([]);
+  });
+
+  it("only one file declares the text colour tokens", () => {
+    for (const file of ["app/globals.css"]) {
+      expect(read(file)).not.toMatch(/--color-text-\w+:/);
+    }
+    expect(CSS).toMatch(/--color-text-secondary:/);
+  });
+
+  it("only one file declares the font stacks", () => {
+    expect(APP_CSS).not.toMatch(/--font-(mono|sans|inter):/);
+    expect(CSS).toMatch(/--font-sans:/);
+  });
+
+  it("no file hardcodes Monaco as the mono face", () => {
+    // next/font loads Roboto Mono; a hardcoded Monaco means that download is
+    // wasted and the UI renders in a face nobody chose.
+    for (const file of ["app/globals.css", "styles/globals.css"]) {
+      const code = read(file).replace(/\/\*[\s\S]*?\*\//g, "");
+      expect(code).not.toContain("Monaco");
+    }
+  });
+
+  it("sets the body font from the base rule, not only a utility class", () => {
+    // Tailwind v4 generates utilities from @theme tokens; a plain :root
+    // declaration does not register one, so `.font-sans` produces no rule.
+    // The html/body base rule is what actually applies the face.
+    expect(CSS).toMatch(/html,\s*body\s*\{[\s\S]*?font-family:\s*var\(--font-inter\)/);
+  });
+});

@@ -21,6 +21,10 @@
   --color-text-secondary: #8b8ba7;
   --color-text-tertiary: #77778c;
 
+  /* Font stacks. Tailwind v4 generates .font-sans / .font-mono from these
+     tokens, so they must be declared here rather than only in the JS config. */
+  --font-sans: var(--font-inter), system-ui, sans-serif;
+
   /* Deprecated alias, kept so nothing breaks mid-refactor. Prefer -secondary. */
   --color-text-muted: #8b8ba7;
 }
