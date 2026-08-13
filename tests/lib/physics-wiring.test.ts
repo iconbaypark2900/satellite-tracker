@@ -79,7 +79,7 @@ describe("refraction is wired into look angles", () => {
   it("leaves the geometric elevation untouched, which the Horizons claim depends on", () => {
     // scripts/validate-vs-horizons.ts compares `elevation` against AIRLESS
     // apparent coordinates. If refraction ever leaked into that field the
-    // published 0.023-degree figure would silently stop meaning what it says.
+    // published accuracy figure would silently stop meaning what it says.
     //
     // The first version of this test hard-coded a timestamp and asserted
     // refraction was non-zero there. The ISS was below the horizon at that

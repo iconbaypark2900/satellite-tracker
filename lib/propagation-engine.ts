@@ -220,7 +220,7 @@ class PropagationEngine {
    *
    * Linear extrapolation drew the ISS 3.9 km from its true position at the
    * window's edge — about 0.45° of apparent error at 500 km range, against
-   * 0.023° for the JPL-Horizons-validated pass-prediction path. Worse, the
+   * the JPL-Horizons-validated pass-prediction path (see docs/VALIDATION.md). Worse, the
    * error grew quadratically and then snapped back on each re-solve, so
    * satellites visibly drifted off their orbit line and jumped.
    *

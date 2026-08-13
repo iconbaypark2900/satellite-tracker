@@ -2,7 +2,7 @@
  * propagation-engine — the globe's render path, checked against SGP4.
  *
  * The app has two propagation paths. `pass-calculator` is validated against
- * JPL Horizons at 0.023° median angular error. This one — what the globe
+ * JPL Horizons — see docs/VALIDATION.md for the current figure and its TLE epoch. This one — what the globe
  * actually draws — had no test at all, and was extrapolating linearly across a
  * 30-second window, putting the ISS 3.9 km from its true position.
  *

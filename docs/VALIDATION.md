@@ -5,10 +5,17 @@ predictions against an independent, authoritative reference: the
 [JPL Horizons](https://ssd.jpl.nasa.gov/horizons/) ephemeris service.
 
 **Headline result:** over a 48-hour window, this app's topocentric ISS
-predictions agree with JPL Horizons to a **median 0.005° all-sky /
-0.039° during overhead passes** (≈ 1/10 the apparent width of the
-Moon), with slant-range agreement of **0.4 km median**, and **12 of 12
-pass culminations matched within the 1-minute sampling grid**.
+predictions agree with JPL Horizons to a **median 0.0014° all-sky /
+0.0013° during overhead passes**, with slant-range
+agreement of **0.035 km median**, and every pass culmination matched
+within the 1-minute sampling grid.
+
+**This number is dominated by TLE age, not by the propagator.** The same
+measurement against an 82-hour-old element set gave 0.011° at el>10°, and
+against a 67-hour-old one, 0.039° — a factor of 30 spread from the identical
+code. Quote this figure only alongside the TLE epoch it was measured with, and
+re-run `npm run validate` after `npm run cache:tle` rather than trusting a
+recorded value.
 
 ## Methodology
 
@@ -35,24 +42,17 @@ pnpm cache:tle    # refresh the TLE snapshot
 pnpm validate     # fetches Horizons, writes docs/validation-results.json
 ```
 
-## Results (generated 2026-08-11, TLE epoch 2026-08-10 12:06 UTC)
+## Results (generated 2026-08-13, TLE epoch 2026-08-13 03:34 UTC)
+
+TLE age at generation: about 18 hours.
 
 | Metric | Median | 95th pct | Max | N |
 |---|---|---|---|---|
-| Angular error, all sky (deg) | 0.005 | 0.018 | 0.158 | 2881 |
-| Angular error, el>10° (deg) | 0.039 | 0.103 | 0.158 | 63 |
-| Range error, el>10° (km) | 0.4 | 1.3 | 1.6 | 63 |
-| Pass-peak timing error (s) | 0.0 | 0.0 | 0.0 | 12/12 passes |
-| Pass-peak elevation error (deg) | 0.01 | 0.06 | 0.06 | 12 |
-
-### Error growth vs prediction horizon (el>10°, angular deg)
-
-| Hours since TLE epoch | Median | 95th pct | Max | N |
-|---|---|---|---|---|
-| 0-12h | 0.016 | 0.039 | 0.060 | 27 |
-| 12-24h | 0.056 | 0.090 | 0.090 | 6 |
-| 24-36h | 0.054 | 0.100 | 0.158 | 25 |
-| 36-48h | 0.103 | 0.133 | 0.133 | 5 |
+| Angular error, all sky (deg) | 0.0014 | 0.0016 | 0.0028 | 2881 |
+| Angular error, el>10° (deg) | 0.0013 | 0.0023 | 0.0028 | 56 |
+| Range error, el>10° (km) | 0.035 | 0.094 | 0.104 | 56 |
+| Pass-peak timing error (s) | 0.0 | 0.0 | 0.0 | 11/11 passes |
+| Pass-peak elevation error (deg) | 0.0003 | 0.0014 | 0.0014 | 11 |
 
 Notes on reading the numbers:
 

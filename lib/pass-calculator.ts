@@ -51,7 +51,7 @@ function observerGd(observer: ObserverLocation) {
  * `elevation` is the GEOMETRIC elevation — where the satellite is. It stays
  * geometric deliberately: `scripts/validate-vs-horizons.ts` compares it against
  * Horizons' *airless* apparent coordinates, and that comparison is the source
- * of the 0.023-degree accuracy claim this project makes. Folding refraction
+ * of the accuracy claim this project makes (docs/VALIDATION.md). Folding refraction
  * into this field would silently invalidate the claim while appearing to
  * improve the physics.
  *
