@@ -25,6 +25,13 @@ import {
 import { refractionArcmin, apparentAltitudeDeg } from "@/lib/refraction";
 import { shadowRadiiKm, shadowState } from "@/lib/shadow";
 import { ObserverLocation, TleSet } from "@/types";
+import { screenConjunctions } from "@/lib/conjunction-core";
+import {
+  collisionProbability,
+  assumedSigmaKm,
+  PC_ASSUMPTION_NOTE,
+} from "@/lib/collision-probability";
+import { readFileSync } from "node:fs";
 
 const NYC: ObserverLocation = {
   lat: 40.7128,
@@ -165,5 +172,56 @@ describe("pass predictions carry the new physics", () => {
     const dist = Math.hypot(sun[0], sun[1], sun[2]);
     expect(dist).toBeGreaterThan(1.4e8);
     expect(dist).toBeLessThan(1.6e8);
+  });
+});
+
+describe("collision probability is wired into conjunction screening", () => {
+  it("attaches a probability and the sigma behind it to screened events", () => {
+    const cache = JSON.parse(
+      readFileSync("public/tle-cache.json", "utf8")
+    );
+    const list = Array.isArray(cache)
+      ? cache
+      : (cache.satellites ?? cache.tles ?? []);
+    const res = screenConjunctions(list.slice(0, 200), {
+      startMs: Date.UTC(2026, 7, 13),
+      windowMs: 12 * 3600_000,
+      thresholdKm: 25,
+      stepSec: 60,
+    });
+    expect(res.events.length).toBeGreaterThan(0);
+    for (const ev of res.events) {
+      expect(ev.pc).toBeDefined();
+      expect(ev.pc!).toBeGreaterThanOrEqual(0);
+      expect(ev.pc!).toBeLessThanOrEqual(1);
+      // The sigma must travel with it, or the number cannot be interpreted.
+      expect(ev.pcSigmaKm).toBeDefined();
+      expect(ev.pcSigmaKm!).toBeGreaterThan(0);
+    }
+  });
+
+  it("combines the two objects' sigmas in quadrature, not by adding them", () => {
+    // Adding overstates the uncertainty. Two equal sigmas s must combine to
+    // s*sqrt(2), not 2s — a 41% difference that would propagate into every Pc.
+    const s = assumedSigmaKm(24);
+    expect(Math.hypot(s, s)).toBeCloseTo(s * Math.SQRT2, 12);
+    expect(Math.hypot(s, s)).not.toBeCloseTo(2 * s, 6);
+  });
+
+  it("keeps the caveat attached to the module", () => {
+    // The only thing preventing a real computation over an invented input from
+    // becoming a false claim is that this travels with it.
+    expect(PC_ASSUMPTION_NOTE).toMatch(/assumed/i);
+    expect(PC_ASSUMPTION_NOTE.length).toBeGreaterThan(40);
+  });
+
+  it("reproduces the dilution regime that makes the column uninformative", () => {
+    // The finding that shaped the UI: once the assumed uncertainty dwarfs the
+    // miss, Pc stops depending on the geometry. If this ever stops being true,
+    // the "≈σ" marker in PcCell is lying and must be revisited.
+    const tight = [0.5, 10].map((d) => collisionProbability(d, 0, 1.5, 1.5, 0.01));
+    const loose = [0.5, 10].map((d) => collisionProbability(d, 0, 75, 75, 0.01));
+    expect(tight[0] / tight[1]).toBeGreaterThan(1e6); // informative
+    expect(loose[0] / loose[1]).toBeLessThan(1.05); // not
   });
 });

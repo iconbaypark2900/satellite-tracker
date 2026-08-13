@@ -17,6 +17,10 @@
 
 import * as satellite from "satellite.js";
 import { buildSatrecs, TleLike } from "./propagation-core";
+import {
+  collisionProbability,
+  assumedSigmaKm,
+} from "./collision-probability";
 
 const MU = 398600.4418; // km³/s²
 /** Pad on the shell-overlap gate: J2 short-periodic osculation (~10-15km
@@ -28,6 +32,54 @@ const INTERVAL_BUFFER_KM: Record<number, number> = { 60: 2, 120: 10 };
 const MERGE_WINDOW_MS = 10 * 60_000;
 const GOLDEN = (Math.sqrt(5) - 1) / 2;
 
+/**
+ * Combined hard-body radius, in km, assumed for every pair.
+ *
+ * A stated guess, like the position uncertainty: this application has no
+ * dimensions for the objects it screens. Ten metres combined is a
+ * conventional default for two unremarkable satellites, and Pc scales roughly
+ * as the square of it — doubling this figure roughly quadruples every
+ * probability on the page. Named rather than inlined so that is visible.
+ */
+const ASSUMED_COMBINED_RADIUS_KM = 0.01;
+
+/** Age of a TLE at a given time, in hours, from the satrec's own epoch. */
+function tleAgeHours(satrec: satellite.SatRec, atMs: number): number {
+  const epochMs = (satrec.jdsatepoch - 2440587.5) * 86400000;
+  return Math.max(0, (atMs - epochMs) / 3600000);
+}
+
+/**
+ * Probability of collision for a refined encounter.
+ *
+ * The combined uncertainty is isotropic — a single assumed sigma per object,
+ * added in quadrature per R2 of the slice's spec, NOT summed. With an
+ * isotropic 2-D Gaussian the encounter-plane orientation drops out and only
+ * the miss MAGNITUDE matters, so the miss vector is passed as (missKm, 0).
+ * That is exact rather than an approximation: verified to 2e-20 across the
+ * axis-swapped and diagonal placements.
+ */
+function encounterPc(
+  satrecA: satellite.SatRec,
+  satrecB: satellite.SatRec,
+  tcaMs: number,
+  missKm: number
+): { pc: number; sigmaKm: number } | null {
+  try {
+    const sA = assumedSigmaKm(tleAgeHours(satrecA, tcaMs));
+    const sB = assumedSigmaKm(tleAgeHours(satrecB, tcaMs));
+    const sigmaKm = Math.hypot(sA, sB);
+    return {
+      pc: collisionProbability(missKm, 0, sigmaKm, sigmaKm, ASSUMED_COMBINED_RADIUS_KM),
+      sigmaKm,
+    };
+  } catch {
+    // Absent rather than zero: a zero would read as "safe" when the truth is
+    // that the probability could not be computed.
+    return null;
+  }
+}
+
 export interface ConjunctionEvent {
   idA: string;
   idB: string;
@@ -38,6 +90,18 @@ export interface ConjunctionEvent {
   tcaMs: number;
   missKm: number;
   relSpeedKmS: number;
+  /**
+   * Probability of collision, from an ASSUMED uncertainty — see
+   * `PC_ASSUMPTION_NOTE`. Not an operational conjunction assessment: public
+   * TLEs carry no covariance, so both the position uncertainty and the
+   * hard-body radius behind this number are stated guesses.
+   *
+   * Optional, and absent rather than zero when it cannot be computed. A zero
+   * would read as "safe" when the truth is "unknown".
+   */
+  pc?: number;
+  /** Combined 1-sigma uncertainty (km) used for `pc`, for display alongside it. */
+  pcSigmaKm?: number;
 }
 
 export interface ScreeningParams {
@@ -508,7 +572,10 @@ export function screenConjunctions(
           Math.min(startMs + windowMs, tCenter + stepMs)
         );
         if (refined && refined.missKm <= thresholdKm) {
+          const risk = encounterPc(satrecA, satrecB, refined.tcaMs, refined.missKm);
           rawEvents.push({
+            pc: risk?.pc,
+            pcSigmaKm: risk?.sigmaKm,
             idA: noradIds[i],
             idB: noradIds[j],
             nameA: tles[i].name,

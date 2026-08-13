@@ -18,6 +18,8 @@ import { useSatelliteInitializer } from "@/hooks/useSatelliteInitializer";
 import { useConjunctionScreener } from "@/hooks/useConjunctionScreener";
 import { getGroupColor } from "@/lib/color-utils";
 import { SatelliteGroup, TleSet } from "@/types";
+import PcCell from "@/components/ui/PcCell";
+import { PC_ASSUMPTION_NOTE } from "@/lib/collision-probability";
 
 const DISPLAY_CAP = 200;
 
@@ -207,6 +209,7 @@ export default function ConjunctionsPage() {
                         <th className="py-1 pr-2">TCA (UTC)</th>
                         <th className="py-1 pr-2">Miss (km)</th>
                         <th className="py-1 pr-2">Rel speed</th>
+                        <th className="py-1 pr-2">Pc</th>
                         <th className="py-1"></th>
                       </tr>
                     </thead>
@@ -230,6 +233,7 @@ export default function ConjunctionsPage() {
                           <td className="py-1.5 pr-2 font-mono">
                             {ev.relSpeedKmS.toFixed(2)} km/s
                           </td>
+                          <PcCell pc={ev.pc} sigmaKm={ev.pcSigmaKm} missKm={ev.missKm} />
                           <td className="py-1.5">
                             <button
                               className="underline text-[#4a9eff]"
@@ -242,6 +246,14 @@ export default function ConjunctionsPage() {
                       ))}
                     </tbody>
                   </table>
+                  <p className="mt-2 text-[0.62rem] leading-relaxed text-text-tertiary">
+                    <span className="text-text-secondary">Pc:</span>{" "}
+                    {PC_ASSUMPTION_NOTE} Hard-body radius assumed at 10 m
+                    combined. Values marked <span className="font-mono">≈σ</span>{" "}
+                    are dominated by that assumed uncertainty rather than by the
+                    encounter geometry, and should not be used to rank
+                    encounters.
+                  </p>
                   {screener.stats && screener.stats.totalFound > shown.length && (
                     <p className="text-xs text-[#6f6d69] mt-2">
                       {screener.stats.totalFound - shown.length} more not shown
