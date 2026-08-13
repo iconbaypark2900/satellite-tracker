@@ -74,7 +74,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <link rel="icon" href="/favicon.ico" />
         <link rel="manifest" href="/manifest.json" />
       </head>
-      <body className="font-mono bg-space text-text-primary overflow-hidden">
+      <body className="font-sans bg-space text-text-primary overflow-hidden">
         <SWRConfig value={swrOptions}>
           {children}
         </SWRConfig>
