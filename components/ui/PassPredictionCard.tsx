@@ -27,12 +27,27 @@ export default function PassPredictionCard({ pass, satelliteName }: Props) {
   );
 
   const isVisible = pass.isVisible ?? pass.isLit;
+  // The conical shadow model distinguishes penumbra from umbra, so a pass that
+  // is merely dimming no longer reads the same as one in full shadow.
+  const shadowText =
+    pass.illumination === "penumbra"
+      ? "🌘 Entering shadow (partial)"
+      : "🌙 In shadow";
   const statusText = isVisible
     ? "☀️ Visible"
     : pass.isLit
       ? "🌤️ Sunlit (sky too bright)"
-      : "🌙 In shadow";
-  const maxElStr = pass.maxElevation.toFixed(0);
+      : shadowText;
+
+  // Apparent elevation is what an observer sees; the geometric value is what
+  // the satellite is at. They differ by ~0.09° at 10° and ~0.48° at the
+  // horizon, so show the apparent one and only mention the difference when it
+  // rounds to something visible at this precision.
+  const maxElStr = (pass.maxElevationApparent ?? pass.maxElevation).toFixed(1);
+  const refractionLift =
+    pass.maxElevationApparent !== undefined
+      ? pass.maxElevationApparent - pass.maxElevation
+      : 0;
 
   return (
     <div
@@ -62,7 +77,17 @@ export default function PassPredictionCard({ pass, satelliteName }: Props) {
 
       <div style={{ display: "flex", gap: "1rem", fontSize: "0.65rem" }}>
         <span className="lab">Max El:</span>
-        <span className="val">{maxElStr}°</span>
+        <span
+          className="val"
+          title={
+            refractionLift > 0
+              ? `Apparent elevation. Geometric ${pass.maxElevation.toFixed(2)}°, ` +
+                `lifted ${(refractionLift * 60).toFixed(1)}′ by refraction.`
+              : undefined
+          }
+        >
+          {maxElStr}°
+        </span>
         <span className="lab">Dur:</span>
         <span className="val">{duration}</span>
         <span className="lab">Transit:</span>
@@ -74,7 +99,17 @@ export default function PassPredictionCard({ pass, satelliteName }: Props) {
         {"  "}
         {statusText}
         {"  "}
-        Mag: {pass.magnitude.toFixed(1)}
+        <span
+          title={
+            pass.magnitudeIsCurated
+              ? "From a curated standard magnitude for this NORAD id, with a phase-angle model. Published estimates carry roughly ±0.5 mag."
+              : "No curated standard magnitude for this object — a class default was used. Treat as indicative only."
+          }
+        >
+          Mag:{" "}
+          {Number.isFinite(pass.magnitude) ? pass.magnitude.toFixed(1) : "—"}
+          {pass.magnitudeIsCurated ? "" : "?"}
+        </span>
       </div>
     </div>
   );

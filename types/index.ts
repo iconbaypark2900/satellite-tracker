@@ -144,12 +144,30 @@ export interface PassPrediction {
   endAz: number;
   /** Whether the satellite is sunlit during the pass */
   isLit: boolean;
+  /**
+   * Illumination at culmination, from the conical shadow model: fully sunlit,
+   * in the partial penumbra, or in the umbra. `isLit` is the boolean collapse
+   * of this ("sunlit" only) and is kept for existing callers.
+   */
+  illumination?: "sunlit" | "penumbra" | "umbra";
   /** Sunlit satellite + dark observer sky — actually watchable */
   isVisible?: boolean;
   /** Above the horizon for the entire prediction window (e.g. GEO in view) */
   neverSets?: boolean;
+  /**
+   * Apparent maximum elevation in degrees — where an observer sees the
+   * satellite, after atmospheric refraction lifts it toward the zenith.
+   * `maxElevation` remains the geometric value.
+   */
+  maxElevationApparent?: number;
   /** Maximum brightness (magnitude) */
   magnitude: number;
+  /**
+   * True when `magnitude` came from a curated standard magnitude for this
+   * NORAD id rather than a class default. Present so the UI can show which
+   * numbers are grounded — a caller receiving a bare number cannot tell.
+   */
+  magnitudeIsCurated?: boolean;
 }
 
 /** A ground station for access-window planning. */

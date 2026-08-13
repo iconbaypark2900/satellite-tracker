@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-11T01:03:13.499Z",
+  "generatedAt": "2026-08-13T20:41:20.088Z",
   "satellite": "ISS (25544)",
   "tleEpoch": "2026-08-10T12:06:16.697Z",
   "tleSource": "AMSAT/r4uab mirror snapshot",
@@ -15,22 +15,22 @@
   "angularErrorDeg": {
     "allSky": {
       "n": 2881,
-      "median": 0.0052244227454304164,
-      "p95": 0.018120953701145207,
-      "max": 0.15820488894990245
+      "median": 0.0010418092237393743,
+      "p95": 0.0048437563996851455,
+      "max": 0.055956783826119225
     },
     "above10El": {
       "n": 63,
-      "median": 0.03938046618269246,
-      "p95": 0.10253074014418782,
-      "max": 0.15820488894990245
+      "median": 0.010986200357600394,
+      "p95": 0.03514742137384558,
+      "max": 0.055956783826119225
     }
   },
   "rangeErrorKmAbove10El": {
     "n": 63,
-    "median": 0.36256423377994906,
-    "p95": 1.3436631678687263,
-    "max": 1.6194051562629284
+    "median": 0.13531000589148334,
+    "p95": 0.522829403052242,
+    "max": 0.5797266718832361
   },
   "culminations": {
     "matched": 12,
@@ -43,82 +43,82 @@
     },
     "deltaPeakElDeg": {
       "n": 12,
-      "median": 0.006054101495198694,
-      "p95": 0.05834120163018497,
-      "max": 0.05834120163018497
+      "median": 0.002726071228646987,
+      "p95": 0.013058653197667525,
+      "max": 0.013058653197667525
     },
     "detail": [
       {
         "horizonsTcaUtc": "2026-08-10T12:20:00.000Z",
         "deltaTcaSec": 0,
-        "horizonsPeakEl": 62.952284,
-        "deltaPeakElDeg": -0.01375345134022865
+        "horizonsPeakEl": 62.937093,
+        "deltaPeakElDeg": 0.0014375486597728582
       },
       {
         "horizonsTcaUtc": "2026-08-10T13:57:00.000Z",
         "deltaTcaSec": 0,
-        "horizonsPeakEl": 22.386859,
-        "deltaPeakElDeg": -0.0008401496566712296
+        "horizonsPeakEl": 22.386048,
+        "deltaPeakElDeg": -0.00002914965666889202
       },
       {
         "horizonsTcaUtc": "2026-08-10T15:35:00.000Z",
         "deltaTcaSec": 0,
-        "horizonsPeakEl": 12.755884,
-        "deltaPeakElDeg": -0.0000611823352549834
+        "horizonsPeakEl": 12.755486,
+        "deltaPeakElDeg": 0.00033681766474558117
       },
       {
         "horizonsTcaUtc": "2026-08-10T17:13:00.000Z",
         "deltaTcaSec": 0,
-        "horizonsPeakEl": 19.388755,
-        "deltaPeakElDeg": 0.0011494554288589143
+        "horizonsPeakEl": 19.388689,
+        "deltaPeakElDeg": 0.0012154554288592578
       },
       {
         "horizonsTcaUtc": "2026-08-10T18:50:00.000Z",
         "deltaTcaSec": 0,
-        "horizonsPeakEl": 76.363303,
-        "deltaPeakElDeg": 0.05834120163018497
+        "horizonsPeakEl": 76.409452,
+        "deltaPeakElDeg": 0.012192201630185195
       },
       {
         "horizonsTcaUtc": "2026-08-11T11:32:00.000Z",
         "deltaTcaSec": 0,
-        "horizonsPeakEl": 33.859537,
-        "deltaPeakElDeg": -0.018117259753637427
+        "horizonsPeakEl": 33.838217,
+        "deltaPeakElDeg": 0.0032027402463654653
       },
       {
         "horizonsTcaUtc": "2026-08-11T13:09:00.000Z",
         "deltaTcaSec": 0,
-        "horizonsPeakEl": 30.222256,
-        "deltaPeakElDeg": -0.006054101495198694
+        "horizonsPeakEl": 30.218867,
+        "deltaPeakElDeg": -0.002665101495196609
       },
       {
         "horizonsTcaUtc": "2026-08-11T14:47:00.000Z",
         "deltaTcaSec": 0,
-        "horizonsPeakEl": 13.349159,
-        "deltaPeakElDeg": 0.0014801995940114665
+        "horizonsPeakEl": 13.349438,
+        "deltaPeakElDeg": 0.0012011995940124365
       },
       {
         "horizonsTcaUtc": "2026-08-11T16:25:00.000Z",
         "deltaTcaSec": 0,
-        "horizonsPeakEl": 15.84039,
-        "deltaPeakElDeg": 0.004067071228647023
+        "horizonsPeakEl": 15.841731,
+        "deltaPeakElDeg": 0.002726071228646987
       },
       {
         "horizonsTcaUtc": "2026-08-11T18:02:00.000Z",
         "deltaTcaSec": 0,
-        "horizonsPeakEl": 55.439525,
-        "deltaPeakElDeg": 0.014298653197663214
+        "horizonsPeakEl": 55.440765,
+        "deltaPeakElDeg": 0.013058653197667525
       },
       {
         "horizonsTcaUtc": "2026-08-11T19:38:00.000Z",
         "deltaTcaSec": 0,
-        "horizonsPeakEl": 16.368681,
-        "deltaPeakElDeg": -0.005279084386067723
+        "horizonsPeakEl": 16.36835,
+        "deltaPeakElDeg": -0.00494808438606853
       },
       {
         "horizonsTcaUtc": "2026-08-12T10:45:00.000Z",
         "deltaTcaSec": 0,
-        "horizonsPeakEl": 20.098597,
-        "deltaPeakElDeg": 0.009570527525621486
+        "horizonsPeakEl": 20.095964,
+        "deltaPeakElDeg": 0.01220352752562448
       }
     ]
   },
@@ -126,30 +126,30 @@
     {
       "horizon": "0-12h",
       "n": 27,
-      "median": 0.01564453366565136,
-      "p95": 0.03938046618269246,
-      "max": 0.059529093684814155
+      "median": 0.0015726663519894926,
+      "p95": 0.010274542860067598,
+      "max": 0.015829106184287078
     },
     {
       "horizon": "12-24h",
       "n": 6,
-      "median": 0.05610110081861805,
-      "p95": 0.08996884659440878,
-      "max": 0.08996884659440878
+      "median": 0.017865770165857244,
+      "p95": 0.025878965856814113,
+      "max": 0.025878965856814113
     },
     {
       "horizon": "24-36h",
       "n": 25,
-      "median": 0.0539035250692124,
-      "p95": 0.09981484847819715,
-      "max": 0.15820488894990245
+      "median": 0.016411116537568486,
+      "p95": 0.036652996626239144,
+      "max": 0.055956783826119225
     },
     {
       "horizon": "36-48h",
       "n": 5,
-      "median": 0.10253074014418782,
-      "p95": 0.13311637221550465,
-      "max": 0.13311637221550465
+      "median": 0.030242974558175848,
+      "p95": 0.03715786123772629,
+      "max": 0.03715786123772629
     }
   ]
 }

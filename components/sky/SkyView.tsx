@@ -157,8 +157,12 @@ export default function SkyView() {
       if (!sat.tle) return;
       if (filters[sat.group as string] === false) return;
       const look = computeAzEl(sat.tle, simTime, observer);
-      if (!look || look.elevation <= 0) return;
-      above.push({ sat, az: look.azimuth, el: look.elevation });
+      // Apparent, not geometric: this view is a picture of where to point, and
+      // refraction lifts an object ~0.09 degrees at 10 and ~0.48 at the
+      // horizon. The visibility test uses the apparent value too, so an object
+      // refraction has lifted into view is drawn rather than culled.
+      if (!look || look.apparentElevation <= 0) return;
+      above.push({ sat, az: look.azimuth, el: look.apparentElevation });
     });
 
     // Trail for the selected satellite (next TRAIL_MINUTES)
@@ -172,11 +176,11 @@ export default function SkyView() {
       for (let s = 0; s <= TRAIL_MINUTES * 60; s += TRAIL_STEP_S) {
         const t = new Date(simTime.getTime() + s * 1000);
         const look = computeAzEl(selectedSat.tle, t, observer);
-        if (!look || look.elevation <= 0) {
+        if (!look || look.apparentElevation <= 0) {
           started = false;
           continue;
         }
-        const [x, y] = project(look.azimuth, look.elevation);
+        const [x, y] = project(look.azimuth, look.apparentElevation);
         if (started) {
           ctx.lineTo(x, y);
         } else {
