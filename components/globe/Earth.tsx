@@ -65,39 +65,11 @@ const EARTH_VERTEX = /* glsl */ `
 const EARTH_FRAGMENT = /* glsl */ `
   uniform sampler2D uDayMap;
   uniform sampler2D uNightMap;
-  uniform sampler2D uNormalMap;
-  uniform sampler2D uSpecMap;
   uniform vec3 uSunDir;
   uniform float uHasNight;
-  uniform float uHasNormal;
-  uniform float uHasSpec;
   varying vec3 vWorldNormal;
   varying vec3 vWorldPos;
   varying vec2 vUv;
-
-  /**
-   * Tangent basis for a UV sphere, derived analytically.
-   *
-   * sphereGeometry carries no tangent attribute, and adding one would mean a
-   * BufferGeometryUtils dependency for geometry whose parameterisation we
-   * already know. For a UV sphere the tangent runs along increasing longitude,
-   * which is the direction perpendicular to both the surface normal and the
-   * polar axis. Exact here; not general to arbitrary meshes.
-   */
-  mat3 sphereTBN(vec3 n) {
-    // POLAR AXIS IS +Z, NOT +Y. vWorldNormal is a world-space vector, and the
-    // mesh carries rotation-x = PI/2 to put the geometry's +Y pole on scene +Z
-    // (ECI north). Using +Y here builds the basis 90 degrees off and applies
-    // the normal map sideways — which still renders, just wrong, so it would
-    // not have announced itself.
-    vec3 polar = vec3(0.0, 0.0, 1.0);
-    // Degenerate exactly at the poles, where every longitude meets. Fall back
-    // to any perpendicular direction rather than emitting NaN across the cap.
-    vec3 t = cross(polar, n);
-    float len = length(t);
-    t = len > 1e-4 ? t / len : vec3(1.0, 0.0, 0.0);
-    return mat3(t, cross(n, t), n);
-  }
 
   void main() {
     vec3 n = normalize(vWorldNormal);
@@ -106,42 +78,12 @@ const EARTH_FRAGMENT = /* glsl */ `
       ? texture2D(uNightMap, vUv).rgb
       : day * 0.04;
 
-    // Surface relief. Perturb the normal used for LIGHTING only — the
-    // geometric normal still drives the terminator and the fresnel rim, so
-    // mountains cannot punch holes in the day/night line.
-    vec3 shadingNormal = n;
-    if (uHasNormal > 0.5) {
-      vec3 tn = texture2D(uNormalMap, vUv).rgb * 2.0 - 1.0;
-      // Flatten the bump slightly: these maps are authored for close-up use and
-      // read as gravel from orbit at full strength.
-      tn.xy *= 0.6;
-      shadingNormal = normalize(sphereTBN(n) * normalize(tn));
-    }
-
     // Soft terminator: fully night below -0.08, fully day above 0.15
     float k = smoothstep(-0.08, 0.15, dot(n, uSunDir));
-
-    // Relief shading, driven by the perturbed normal. Centred on 1.0 so flat
-    // ground keeps the texture's own brightness and only slopes shift.
-    float relief = uHasNormal > 0.5
-      ? mix(1.0, 0.6 + 0.8 * max(dot(shadingNormal, uSunDir), 0.0), k)
-      : 1.0;
-
-    vec3 color = mix(night * 1.6, day * relief, k);
-
-    vec3 viewDir = normalize(cameraPosition - vWorldPos);
-
-    // Sun glint on water. The spec map is the ocean mask — an unmasked
-    // highlight sliding over continents is the classic giveaway. Gated by k so
-    // it cannot appear on the night side.
-    if (uHasSpec > 0.5) {
-      float water = texture2D(uSpecMap, vUv).r;
-      vec3 h = normalize(uSunDir + viewDir);
-      float spec = pow(max(dot(shadingNormal, h), 0.0), 48.0);
-      color += vec3(1.0, 0.97, 0.9) * spec * water * k * 0.55;
-    }
+    vec3 color = mix(night * 1.6, day, k);
 
     // Subtle blue fresnel rim
+    vec3 viewDir = normalize(cameraPosition - vWorldPos);
     float rim = pow(1.0 - max(dot(n, viewDir), 0.0), 3.0);
     color += vec3(0.2, 0.45, 0.9) * rim * 0.35;
 
@@ -237,32 +179,17 @@ function EarthSphere() {
   const [maps, setMaps] = useState<{
     day: Texture;
     night: Texture | null;
-    normal: Texture | null;
-    spec: Texture | null;
   } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      // All four are downloaded by scripts/download-textures.ts. Until now only
-      // the first two were ever sampled, so the Earth had no surface relief and
-      // no ocean glint despite shipping the maps for both.
-      const [day, night, normal, spec] = await Promise.all([
+      const [day, night] = await Promise.all([
         loadTexture("/textures/earth-day.jpg"),
         loadTexture("/textures/earth-night.jpg"),
-        loadTexture("/textures/earth-normal.jpg"),
-        loadTexture("/textures/earth-spec.jpg"),
       ]);
       if (cancelled) return;
-      // If the day map is missing we are on the procedural fallback, where the
-      // real normal/spec maps would not line up with the generated continents.
-      const real = day !== null;
-      setMaps({
-        day: day ?? createEarthTexture(),
-        night: real ? night : null,
-        normal: real ? normal : null,
-        spec: real ? spec : null,
-      });
+      setMaps({ day: day ?? createEarthTexture(), night: day ? night : null });
     })();
     return () => {
       cancelled = true;
@@ -277,13 +204,7 @@ function EarthSphere() {
       uniforms: {
         uDayMap: { value: maps.day },
         uNightMap: { value: maps.night ?? maps.day },
-        uNormalMap: { value: maps.normal ?? maps.day },
-        uSpecMap: { value: maps.spec ?? maps.day },
         uHasNight: { value: maps.night ? 1 : 0 },
-        // Each map is independently optional: a failed fetch drops that one
-        // effect and leaves the rest rendering exactly as before.
-        uHasNormal: { value: maps.normal ? 1 : 0 },
-        uHasSpec: { value: maps.spec ? 1 : 0 },
         uSunDir: { value: new Vector3(1, 0, 0) },
       },
       vertexShader: EARTH_VERTEX,

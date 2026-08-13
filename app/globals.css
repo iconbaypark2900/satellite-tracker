@@ -5,16 +5,23 @@
 
 @config "../tailwind.config.js";
 
-/* Tokens and the html/body base live in styles/globals.css, imported above.
- *
- * They used to be re-declared HERE as well, after that import — so this block
- * silently won, and every token defined upstream was overridden. That is how
- * --color-text-muted stayed at #6f6d69 (3.81:1, below the AA floor) and
- * --font-mono stayed at "Monaco" while the app downloaded Roboto Mono and Inter
- * and rendered neither. Three files defined the same tokens; only this one
- * took effect.
- *
- * Do not reintroduce a :root block here. Edit styles/globals.css. */
+:root {
+  --color-primary: #4137ff;
+  --color-space: #05051a;
+  --color-text-primary: #e0e0ff;
+  --color-text-muted: #6f6d69;
+  --font-mono: "Monaco", "Consolas", monospace;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  font-family: var(--font-mono, monospace);
+  background: var(--color-space);
+  color: var(--color-text-primary);
+}
 
 #__next {
   height: 100%;
