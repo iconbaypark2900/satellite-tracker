@@ -14,8 +14,7 @@ import * as fs from "fs";
 import * as path from "path";
 import { fileURLToPath } from "url";
 import { fetchAllTles, parseTleText } from "@/lib/tle-client";
-import { TleSet, SatelliteGroup } from "@/types";
-import { CELESTRAK_TLE_GROUPS } from "@/lib/constants";
+import { TleSet } from "@/types";
 
 /**
  * Mirror TLE sources used when Celestrak is unreachable (it blocks some
@@ -27,19 +26,6 @@ const MIRROR_SOURCES = [
   "https://r4uab.ru/satonline.txt",
 ];
 
-/** Best-effort constellation classification by satellite name. */
-function classifyByName(name: string): SatelliteGroup {
-  const n = name.toUpperCase();
-  if (/ISS|ZARYA|TIANHE|TIANGONG|PROGRESS|SOYUZ|DRAGON|CYGNUS/.test(n)) return "STATIONS";
-  if (n.includes("STARLINK")) return "STARLINK";
-  if (n.includes("ONEWEB")) return "ONEWEB";
-  if (/NAVSTAR|GPS/.test(n)) return "GPS-OPS";
-  if (/GOES|EWS-G/.test(n)) return "GOES";
-  if (/^SES[- ]/.test(n)) return "SES";
-  if (n.includes("INTELSAT")) return "INTREPID";
-  return "OTHER";
-}
-
 /** Fetch real TLEs from the mirror sources, deduped by NORAD ID. */
 async function fetchMirrorTles(): Promise<TleSet[]> {
   const byNorad = new Map<string, TleSet>();
@@ -49,11 +35,11 @@ async function fetchMirrorTles(): Promise<TleSet[]> {
       const res = await fetch(url, { signal: AbortSignal.timeout(15000) });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const text = await res.text();
-      const parsed = parseTleText(text, "OTHER");
+      // parseTleText categorises by name, so the mirror catalogue lands in
+      // the same groups Celestrak's would.
+      const parsed = parseTleText(text);
       parsed.forEach((tle) => {
-        if (!byNorad.has(tle.noradId)) {
-          byNorad.set(tle.noradId, { ...tle, group: classifyByName(tle.name) });
-        }
+        if (!byNorad.has(tle.noradId)) byNorad.set(tle.noradId, tle);
       });
       console.log(`  ↳ ${url}: ${parsed.length} TLEs`);
     } catch (err) {

@@ -7,6 +7,7 @@
 
 import { PassPrediction } from "@/types";
 import { formatTime, formatDuration } from "@/lib/time-utils";
+import PassStatus from "@/components/ui/PassStatus";
 
 interface Props {
   pass: PassPrediction;
@@ -27,17 +28,6 @@ export default function PassPredictionCard({ pass, satelliteName }: Props) {
   );
 
   const isVisible = pass.isVisible ?? pass.isLit;
-  // The conical shadow model distinguishes penumbra from umbra, so a pass that
-  // is merely dimming no longer reads the same as one in full shadow.
-  const shadowText =
-    pass.illumination === "penumbra"
-      ? "🌘 Entering shadow (partial)"
-      : "🌙 In shadow";
-  const statusText = isVisible
-    ? "☀️ Visible"
-    : pass.isLit
-      ? "🌤️ Sunlit (sky too bright)"
-      : shadowText;
 
   // Apparent elevation is what an observer sees; the geometric value is what
   // the satellite is at. They differ by ~0.09° at 10° and ~0.48° at the
@@ -97,7 +87,7 @@ export default function PassPredictionCard({ pass, satelliteName }: Props) {
       <div style={{ fontSize: "0.62rem", color: "#6f6d69" }}>
         Az: {pass.startAz.toFixed(0)}° → {pass.maxAz.toFixed(0)}° → {pass.endAz.toFixed(0)}°
         {"  "}
-        {statusText}
+        <PassStatus pass={pass} />
         {"  "}
         <span
           title={

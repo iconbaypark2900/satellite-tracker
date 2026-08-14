@@ -16,20 +16,46 @@ export interface TleSet {
   line2: string;
   /** Epoch timestamp (from TLE line 1) */
   epoch: string;
-  /** Raw TLE source / group (e.g. "STATIONS", "STARLINK") */
+  /** Mission category, assigned by `classifySatellite` (not the fetch source) */
   group?: SatelliteGroup;
 }
 
-/** Groups of satellites from Celestrak. */
+/**
+ * Mission category a satellite is displayed under.
+ *
+ * These are derived from the object's name by `lib/classify-satellite.ts`,
+ * deliberately independent of which feed it arrived on: the tracker reads
+ * from Celestrak when it is reachable and from amateur-radio mirrors when it
+ * is not, and the two carry completely different satellites. Categorising by
+ * source would leave most groups empty whenever Celestrak is blocked.
+ */
 export type SatelliteGroup =
+  | "STATIONS"
+  | "STARLINK"
+  | "ONEWEB"
+  | "NAVIGATION"
+  | "WEATHER"
+  | "COMMS"
+  | "EARTH-OBS"
+  | "AMATEUR"
+  | "RESEARCH"
+  | "DEBRIS"
+  | "OTHER";
+
+/**
+ * A Celestrak TLE feed. A fetch concern only — the display category comes
+ * from `classifySatellite`, so these names never reach the UI.
+ */
+export type CelestrakGroup =
   | "STATIONS"
   | "STARLINK"
   | "ONEWEB"
   | "GPS-OPS"
   | "GOES"
   | "SES"
-  | "INTREPID"
-  | "OTHER";
+  | "INTELSAT"
+  | "WEATHER"
+  | "AMATEUR";
 
 /** Result of SGP4 propagation at a given time. */
 export interface PropagationResult {
@@ -73,8 +99,8 @@ export interface Satellite {
   group: SatelliteGroup;
   /** Human-friendly type (Station, Observatory, Comms, Nav, Weather, etc.) */
   type: string;
-  /** Operator organization */
-  operator: SatelliteOperator;
+  /** Operator organization, absent when no source identifies one */
+  operator?: SatelliteOperator;
   /** Orbital period in minutes */
   period: number;
   /** Inclination in degrees */
@@ -87,8 +113,14 @@ export interface Satellite {
   perigee: number;
   /** Mean altitude in km */
   altitude: number;
-  /** Launch date string (e.g. "2020-025A") */
+  /** Calendar launch date (e.g. "2009-02-06"), when a source supplies one */
   launchDate?: string;
+  /**
+   * International designator parsed from TLE line 1 (e.g. "2013-066B").
+   * Always derivable, but it identifies the launch, not its date — kept
+   * separate from `launchDate` so the UI never labels one as the other.
+   */
+  intlDesignator?: string;
   /** Display color for this satellite */
   color: string;
   /** Current ECI position at simulation time */

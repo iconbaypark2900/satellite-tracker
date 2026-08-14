@@ -16,6 +16,7 @@ import PassPredictionCard from "@/components/ui/PassPredictionCard";
 import { useSatelliteStore } from "@/lib/satellite-store";
 import { useSatelliteInitializer } from "@/hooks/useSatelliteInitializer";
 import { usePassPredictions } from "@/hooks/usePassPredictions";
+import Icon, { IconLabel } from "@/components/ui/Icon";
 
 export default function PassesPage() {
   useSatelliteInitializer();
@@ -39,7 +40,10 @@ export default function PassesPage() {
       {/* Main content area (left of sidebar) */}
       <div className="absolute top-14 left-0 right-80 bottom-20 overflow-auto">
         <div className="max-w-4xl mx-auto p-4">
-          <h1 className="text-xl font-bold mb-4">🛰️ Pass Predictions</h1>
+          <h1 className="text-xl font-bold mb-4 flex items-center gap-2">
+            <Icon name="satellite" />
+            Pass Predictions
+          </h1>
 
           {/* Location picker */}
           <div className="mb-4">
@@ -55,7 +59,9 @@ export default function PassesPage() {
               </h2>
 
               {isLoading && (
-                <p className="text-sm text-[#6f6d69]">⏳ Computing passes…</p>
+                <p className="text-sm text-[#6f6d69]">
+                    <IconLabel icon="reset">Computing passes…</IconLabel>
+                  </p>
               )}
 
               {passError && (
@@ -72,7 +78,7 @@ export default function PassesPage() {
 
               {!isLoading && !passError && neverSetsPass && (
                 <div className="mb-3 p-3 rounded border border-[#4a9eff]/40 bg-[#4a9eff]/10 text-sm">
-                  🛰️ {selectedSatellite.name} is above the horizon from{" "}
+                  <Icon name="satellite" /> {selectedSatellite.name} is above the horizon from{" "}
                   {observer.label} for the entire day (elevation{" "}
                   {neverSetsPass.maxElevation.toFixed(0)}°) — typical for a
                   geostationary satellite. There are no rise/set passes to list.
@@ -90,7 +96,7 @@ export default function PassesPage() {
                 <div id="passes-list" className="flex flex-col gap-2">
                   {nextVisible?.isVisible && (
                     <div className="p-2 rounded border border-[#8aff8a]/40 bg-[#8aff8a]/10 text-xs">
-                      👁️ Next visible pass:{" "}
+                      <Icon name="eye" /> Next visible pass:{" "}
                       {nextVisible.startTime.toLocaleString(undefined, {
                         weekday: "short",
                         hour: "2-digit",
@@ -134,7 +140,9 @@ export default function PassesPage() {
       {error && (
         <div className="fixed inset-0 bg-space/90 flex items-center justify-center z-[100]">
           <div className="p-6 text-center">
-            <div className="text-2xl mb-2">⚠️</div>
+            <div className="mb-2 flex justify-center text-satellite-orange">
+              <Icon name="alert" size={26} />
+            </div>
             <p className="text-sm text-text-muted mb-1">{error}</p>
             <p className="text-xs text-text-muted">Retrying…</p>
           </div>

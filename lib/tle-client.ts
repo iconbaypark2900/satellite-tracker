@@ -2,17 +2,18 @@
  * Celestrak TLE API client — fetch, parse, and cache Two-Line Element sets.
  */
 
-import { TleSet, SatelliteGroup } from "@/types";
+import { TleSet, CelestrakGroup } from "@/types";
 import {
   CELESTRAK_TLE_GROUPS,
   TLE_CACHE_TTL,
   DEFAULT_SATELLITES,
 } from "@/lib/constants";
+import { classifySatellite } from "@/lib/classify-satellite";
 
 // ─── Types ─�────────────────────────────────────────────── //
 
 interface FetchResult {
-  group: SatelliteGroup;
+  group: CelestrakGroup;
   tles: TleSet[];
   fetchedAt: number;
 }
@@ -20,12 +21,12 @@ interface FetchResult {
 // ─── In-memory Cache ───────────────────────────────────── //
 
 /** Module-level cache for TLE data (5-minute TTL). */
-const tleCache = new Map<SatelliteGroup, FetchResult>();
+const tleCache = new Map<CelestrakGroup, FetchResult>();
 
 /**
  * Check if cached data is still fresh.
  */
-function isCacheFresh(group: SatelliteGroup, ttlSec: number = TLE_CACHE_TTL): boolean {
+function isCacheFresh(group: CelestrakGroup, ttlSec: number = TLE_CACHE_TTL): boolean {
   const entry = tleCache.get(group);
   if (!entry) return false;
   return Date.now() - entry.fetchedAt < ttlSec * 1000;
@@ -34,15 +35,18 @@ function isCacheFresh(group: SatelliteGroup, ttlSec: number = TLE_CACHE_TTL): bo
 // ─── TLE Parsing ───────────────────────────────────────── //
 
 /**
- * Parse raw Celestrak TLE text into structured TleSet objects.
+ * Parse raw TLE text into structured TleSet objects.
  *
- * Celestrak returns text in the format:
+ * Celestrak and the amateur mirrors both return text in the format:
  *   SATELLITE NAME
  *   1 NORAD_ID ... (line 1)
  *   2 NORAD_ID ... (line 2)
  *   (blank line separator)
+ *
+ * Each object is filed by name, so a set parses to the same categories no
+ * matter which feed it came from.
  */
-export function parseTleText(raw: string, group: SatelliteGroup): TleSet[] {
+export function parseTleText(raw: string): TleSet[] {
   const lines = raw.trim().split(/\r?\n/);
   const tles: TleSet[] = [];
 
@@ -62,14 +66,15 @@ export function parseTleText(raw: string, group: SatelliteGroup): TleSet[] {
       // sources disagree on padding)
       const noradId = line.substring(2, 7).trim().replace(/^0+(?=\d)/, "");
       const epoch = line.substring(18, 32).trim();
+      const name = nameLine || `NORAD ${noradId}`;
 
       tles.push({
-        name: nameLine || `NORAD ${noradId}`,
+        name,
         noradId,
         line1: line,
         line2,
         epoch,
-        group,
+        group: classifySatellite(name),
       });
       i += 1; // Skip line 2 on next iteration
     }
@@ -85,7 +90,7 @@ export function parseTleText(raw: string, group: SatelliteGroup): TleSet[] {
  * Uses in-memory cache with a 5-minute TTL.
  */
 export async function fetchTleForGroup(
-  group: SatelliteGroup,
+  group: CelestrakGroup,
   signal?: AbortSignal
 ): Promise<TleSet[]> {
   // Check cache
@@ -114,7 +119,7 @@ export async function fetchTleForGroup(
     }
 
     const text = await response.text();
-    const tles = parseTleText(text, group);
+    const tles = parseTleText(text);
 
     tleCache.set(group, { group, tles, fetchedAt: Date.now() });
 
@@ -130,30 +135,32 @@ export async function fetchTleForGroup(
 }
 
 /**
- * Fetch TLE data for all Celestrak groups in parallel.
- * Falls back to default satellite list if all groups fail.
+ * Fetch TLE data for all Celestrak feeds in parallel, deduped by NORAD ID —
+ * the feeds overlap (a GOES satellite appears in both `goes` and `weather`).
+ * Falls back to default satellite list if all feeds fail.
  */
 export async function fetchAllTles(signal?: AbortSignal): Promise<TleSet[]> {
-  const groups: SatelliteGroup[] = [
-    "STATIONS", "STARLINK", "ONEWEB", "GPS-OPS", "GOES",
-    "SES", "INTREPID", "OTHER",
-  ];
+  const groups = Object.keys(CELESTRAK_TLE_GROUPS) as CelestrakGroup[];
 
   // Fetch all groups in parallel for speed
   const results = await Promise.allSettled(
     groups.map((group) => fetchTleForGroup(group, signal))
   );
 
-  const allTles: TleSet[] = [];
+  const byNorad = new Map<string, TleSet>();
   const errors: string[] = [];
 
   results.forEach((result, index) => {
     if (result.status === "fulfilled" && result.value.length > 0) {
-      allTles.push(...result.value);
+      result.value.forEach((tle) => {
+        if (!byNorad.has(tle.noradId)) byNorad.set(tle.noradId, tle);
+      });
     } else if (result.status === "rejected") {
       errors.push(`${groups[index]}: ${result.reason instanceof Error ? result.reason.message : String(result.reason)}`);
     }
   });
+
+  const allTles = [...byNorad.values()];
 
   // If all groups failed, surface the failure — callers decide what to
   // fall back to (stale local cache beats synthetic data).
@@ -179,7 +186,7 @@ export function getFallbackTles(): TleSet[] {
     line1: s.line1 ?? "",
     line2: s.line2 ?? "",
     epoch: "",
-    group: s.group as SatelliteGroup,
+    group: classifySatellite(s.name),
   }));
 }
 
@@ -204,7 +211,7 @@ export function clearTleCache(): void {
 /**
  * Get the age of cached TLE data for a group (seconds, or Infinity if not cached).
  */
-export function getTleAge(group: SatelliteGroup): number {
+export function getTleAge(group: CelestrakGroup): number {
   const entry = tleCache.get(group);
   if (!entry) return Infinity;
   return (Date.now() - entry.fetchedAt) / 1000;

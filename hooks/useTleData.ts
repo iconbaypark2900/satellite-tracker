@@ -7,8 +7,8 @@
 
 import useSWR from "swr";
 import { fetchAllTles, fetchTleForGroup, clearTleCache, getTleAge } from "@/lib/tle-client";
-import { TleSet, SatelliteGroup } from "@/types";
-import { TLE_CACHE_TTL } from "@/lib/constants";
+import { TleSet, CelestrakGroup } from "@/types";
+import { TLE_CACHE_TTL, CELESTRAK_TLE_GROUPS } from "@/lib/constants";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -38,7 +38,7 @@ export function useTleData() {
   };
 }
 
-export function useTleForGroup(group: SatelliteGroup) {
+export function useTleForGroup(group: CelestrakGroup) {
   const { data, error, isValidating, mutate } = useSWR<TleSet[]>(
     group ? ["tle-group", group] : null,
     () => fetchTleForGroup(group),
@@ -62,7 +62,7 @@ export function useTleAge() {
   return useSWR(
     "tle-age",
     () => {
-      const groups: SatelliteGroup[] = ["STATIONS", "STARLINK", "ONEWEB", "GPS-OPS", "GOES"];
+      const groups = Object.keys(CELESTRAK_TLE_GROUPS) as CelestrakGroup[];
       return Math.max(...groups.map((g) => getTleAge(g)));
     },
     {

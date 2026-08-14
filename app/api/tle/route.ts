@@ -26,7 +26,7 @@ import {
   findCachedTle,
 } from "@/lib/tle-cache-file";
 import { CELESTRAK_TLE_GROUPS } from "@/lib/constants";
-import { SatelliteGroup } from "@/types";
+import { CelestrakGroup } from "@/types";
 import { TleSet } from "@/types";
 
 // Revalidate every 5 minutes (300 seconds)
@@ -60,7 +60,7 @@ function tleResponse(
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
-  const groupParam = searchParams.get("group") as SatelliteGroup | null;
+  const groupParam = searchParams.get("group") as CelestrakGroup | null;
   const noradParam = searchParams.get("norad");
   const refresh = searchParams.get("refresh") === "true";
 

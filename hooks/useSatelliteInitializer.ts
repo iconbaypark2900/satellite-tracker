@@ -9,18 +9,29 @@
 import { useEffect } from "react";
 import useSWR, { mutate } from "swr";
 import { useSatelliteStore } from "@/lib/satellite-store";
-import { TLE_CACHE_TTL } from "@/lib/constants";
+import { TLE_CACHE_TTL, GROUP_LABELS } from "@/lib/constants";
 import { Satellite, TleSet, SatelliteGroup, SatelliteOperator } from "@/types";
-import { GROUP_COLORS } from "@/lib/constants";
+import { classifySatellite } from "@/lib/classify-satellite";
 import { getGroupColor } from "@/lib/color-utils";
 import { computeOrbitalParams, parseIntlDesignator } from "@/lib/orbit-utils";
 import { STATIC_SATELLITE_METADATA } from "@/lib/satellite-metadata";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
+/**
+ * Category from the TLE, re-derived if it is one the UI cannot render. A
+ * cache file written before the taxonomy changed carries retired group names
+ * that would render as an unlabelled, uncoloured section; classifying from
+ * the name recovers the right category without waiting for a cache refresh.
+ */
+function resolveGroup(tle: TleSet): SatelliteGroup {
+  const group = tle.group as SatelliteGroup | undefined;
+  return group && group in GROUP_LABELS ? group : classifySatellite(tle.name);
+}
+
 /** Build a Satellite object from a TleSet. */
 function buildSatellite(tle: TleSet): Satellite {
-  const group = (tle.group || "OTHER") as SatelliteGroup;
+  const group = resolveGroup(tle);
   const params = computeOrbitalParams(tle);
 
   // Metadata priority: curated static record > TLE-derived > group inference
@@ -41,7 +52,8 @@ function buildSatellite(tle: TleSet): Satellite {
     perigee: params.perigee ?? 0,
     altitude: params.altitude ?? 0,
     color: getGroupColor(group),
-    launchDate: staticMeta?.launchDate ?? designator?.intlDesignator,
+    launchDate: staticMeta?.launchDate,
+    intlDesignator: designator?.intlDesignator,
   };
 }
 
@@ -158,25 +170,30 @@ function inferType(group: SatelliteGroup): string {
     STATIONS: "Station",
     STARLINK: "Comms",
     ONEWEB: "Comms",
-    "GPS-OPS": "Nav",
-    GOES: "Weather",
-    SES: "Comms",
-    INTREPID: "Comms",
+    NAVIGATION: "Nav",
+    WEATHER: "Weather",
+    COMMS: "Comms",
+    "EARTH-OBS": "Earth Obs",
+    AMATEUR: "Amateur",
+    RESEARCH: "Research",
+    DEBRIS: "Rocket Body",
     OTHER: "Unknown",
   };
   return map[group] ?? "Unknown";
 }
 
-function inferOperator(group: SatelliteGroup): SatelliteOperator {
-  const map: Record<SatelliteGroup, SatelliteOperator> = {
-    STATIONS: { name: "NASA/ESA/CNSA", country: "ISS/China/Russia", abbreviation: "ISS" },
+/**
+ * Only the single-operator categories name an operator. The mission-based
+ * categories span dozens of agencies, so guessing one from the category
+ * would state something false. Returns undefined rather than an "Unknown"
+ * placeholder so the detail panel can tell a missing operator from a known
+ * one and say which — a placeholder reads as data.
+ */
+function inferOperator(group: SatelliteGroup): SatelliteOperator | undefined {
+  const map: Partial<Record<SatelliteGroup, SatelliteOperator>> = {
+    STATIONS: { name: "NASA/ESA/CNSA/Roscosmos", country: "International", abbreviation: "ISS" },
     STARLINK: { name: "SpaceX", country: "USA" },
     ONEWEB: { name: "OneWeb", country: "UK/USA" },
-    "GPS-OPS": { name: "USAF", country: "USA" },
-    GOES: { name: "NOAA/NASA", country: "USA" },
-    SES: { name: "SES", country: "Luxembourg" },
-    INTREPID: { name: "Intelsat", country: "Luxembourg" },
-    OTHER: { name: "Unknown", country: "Unknown" },
   };
-  return map[group] ?? { name: "Unknown", country: "Unknown" };
+  return map[group];
 }

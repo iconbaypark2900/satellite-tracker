@@ -16,6 +16,7 @@ import Sidebar from "@/components/ui/Sidebar";
 import TimeSlider from "@/components/ui/TimeSlider";
 import { useSatelliteStore } from "@/lib/satellite-store";
 import { useSatelliteInitializer } from "@/hooks/useSatelliteInitializer";
+import Icon from "@/components/ui/Icon";
 
 // Dynamically import GlobeScene (heavy Three.js bundle, client-only)
 const GlobeScene = dynamic(() => import("@/components/globe/GlobeScene"), {
@@ -57,7 +58,9 @@ export default function GlobePage() {
       {error && (
         <div className="fixed inset-0 bg-space/90 flex items-center justify-center z-[100]">
           <div className="p-6 text-center">
-            <div className="text-2xl mb-2">⚠️</div>
+            <div className="mb-2 flex justify-center text-satellite-orange">
+              <Icon name="alert" size={26} />
+            </div>
             <p className="text-sm text-text-muted mb-1">{error}</p>
             <p className="text-xs text-text-muted">Retrying…</p>
           </div>

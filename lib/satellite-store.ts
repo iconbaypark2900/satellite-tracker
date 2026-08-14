@@ -11,10 +11,10 @@ import { enableMapSet } from "immer";
 // The store keeps satellites in a Map; immer needs the MapSet plugin to
 // draft it (addSatellite/updateSatellite throw without this).
 enableMapSet();
+import { GROUP_ORDER } from "@/lib/constants";
 import {
   SatelliteStoreState,
   Satellite,
-  SatelliteGroup,
   ConstellationFilter,
   TimeControlState,
   ObserverLocation,
@@ -25,19 +25,8 @@ import {
 
 // ─── Initial State ───────────────────────────────────── //
 
-const ALL_GROUPS: SatelliteGroup[] = [
-  "STATIONS",
-  "STARLINK",
-  "ONEWEB",
-  "GPS-OPS",
-  "GOES",
-  "SES",
-  "INTREPID",
-  "OTHER",
-];
-
 function initialConstellationFilters(): ConstellationFilter {
-  return Object.fromEntries(ALL_GROUPS.map((g) => [g, true]));
+  return Object.fromEntries(GROUP_ORDER.map((g) => [g, true]));
 }
 
 export interface SatelliteStore extends SatelliteStoreState {

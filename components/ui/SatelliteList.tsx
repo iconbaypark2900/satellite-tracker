@@ -10,8 +10,9 @@
 import { useState, useMemo, KeyboardEvent } from "react";
 import { useSatelliteStore } from "@/lib/satellite-store";
 import { Satellite, SatelliteGroup } from "@/types";
-import { GROUP_LABELS, GROUP_COLORS } from "@/lib/constants";
+import { GROUP_LABELS, GROUP_COLORS, GROUP_ORDER } from "@/lib/constants";
 import { orbitType } from "@/lib/orbit-utils";
+import Icon from "@/components/ui/Icon";
 
 interface Props {
   /** NORAD ID of the currently selected satellite, or null. */
@@ -47,15 +48,20 @@ export default function SatelliteList({
     );
   }, [visible, searchQuery]);
 
-  // Group filtered satellites
+  // Group filtered satellites, in the canonical category order rather than
+  // the order the feed happened to list them in. Empty categories are absent
+  // by construction — a category only appears if something landed in it.
   const grouped = useMemo(() => {
-    const groups: Record<string, Satellite[]> = {};
+    const byGroup = new Map<SatelliteGroup, Satellite[]>();
     filtered.forEach((sat) => {
-      const g = (sat.group ?? "OTHER") as string;
-      if (!groups[g]) groups[g] = [];
-      groups[g].push(sat);
+      const g = (sat.group ?? "OTHER") as SatelliteGroup;
+      const bucket = byGroup.get(g);
+      if (bucket) bucket.push(sat);
+      else byGroup.set(g, [sat]);
     });
-    return groups;
+    return GROUP_ORDER.filter((g) => byGroup.has(g)).map(
+      (g) => [g, byGroup.get(g)!] as const
+    );
   }, [filtered]);
 
   const totalCount = visible.length;
@@ -65,7 +71,10 @@ export default function SatelliteList({
     <div className="flex flex-col h-full">
       {/* Header */}
       <div className="mb-3">
-        <h1 className="text-primary text-lg font-bold mb-0.5">🛰️ Satellite Tracker</h1>
+        <h1 className="text-primary text-lg font-bold mb-0.5 flex items-center gap-2">
+          <Icon name="satellite" />
+          Satellite Tracker
+        </h1>
         <p className="text-text-muted text-xs">
           Real-time orbital visualization with SGP4 propagation
         </p>
@@ -104,10 +113,10 @@ export default function SatelliteList({
             No satellites match your search.
           </div>
         ) : (
-          Object.entries(grouped).map(([group, sats]) => (
+          grouped.map(([group, sats]) => (
             <GroupSection
               key={group}
-              group={group as SatelliteGroup}
+              group={group}
               satellites={sats}
               selectedNorad={selectedNorad}
               onSelect={onSelect}
@@ -184,7 +193,7 @@ function GroupSection({
               transform: isCollapsed ? "rotate(0deg)" : "rotate(90deg)",
             }}
           >
-            ▼
+            <Icon name="chevron" />
           </span>
         </span>
       </div>

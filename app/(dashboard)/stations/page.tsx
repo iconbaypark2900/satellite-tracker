@@ -20,6 +20,8 @@ import { useGroundStations } from "@/hooks/useGroundStations";
 import { computeAccessWindows } from "@/lib/access-windows";
 import { accessEventsToIcs } from "@/lib/ics-export";
 import { Satellite } from "@/types";
+import Icon, { IconLabel } from "@/components/ui/Icon";
+import PassStatus from "@/components/ui/PassStatus";
 
 export default function StationsPage() {
   useSatelliteInitializer();
@@ -71,7 +73,10 @@ export default function StationsPage() {
 
       <div className="absolute top-14 left-0 right-80 bottom-10 overflow-auto">
         <div className="max-w-5xl mx-auto p-4">
-          <h1 className="text-xl font-bold mb-4">📡 Ground-Station Access Planner</h1>
+          <h1 className="text-xl font-bold mb-4 flex items-center gap-2">
+            <Icon name="signal" />
+            Ground-Station Access Planner
+          </h1>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
             <StationManager />
@@ -106,7 +111,7 @@ export default function StationsPage() {
               onClick={handleExport}
               disabled={events.length === 0}
             >
-              📅 Export .ics
+              <IconLabel icon="calendar">Export .ics</IconLabel>
             </button>
           </div>
 
@@ -151,13 +156,7 @@ export default function StationsPage() {
                         <td className="py-1 pr-2">{durMin.toFixed(0)}m</td>
                         <td className="py-1 pr-2">{p.maxElevation.toFixed(0)}°</td>
                         <td className="py-1">
-                          {p.neverSets
-                            ? "🛰️ Continuous"
-                            : p.isVisible
-                              ? "☀️ Visible"
-                              : p.isLit
-                                ? "🌤️ Sunlit"
-                                : "🌙 Shadow"}
+                          <PassStatus pass={p} terse />
                         </td>
                       </tr>
                     );
@@ -179,7 +178,9 @@ export default function StationsPage() {
       {error && (
         <div className="fixed inset-0 bg-space/90 flex items-center justify-center z-[100]">
           <div className="p-6 text-center">
-            <div className="text-2xl mb-2">⚠️</div>
+            <div className="mb-2 flex justify-center text-satellite-orange">
+              <Icon name="alert" size={26} />
+            </div>
             <p className="text-sm text-text-muted mb-1">{error}</p>
             <p className="text-xs text-text-muted">Retrying…</p>
           </div>

@@ -59,9 +59,9 @@ Notes on reading the numbers:
 - Angular error is larger during passes (el>10°) than all-sky because
   the satellite is *closer*: the same few-hundred-meter position error
   subtends a larger angle at 500 km slant range than at 2000 km.
-- The range error (median 0.4 km, max 1.6 km over 48h) sits inside
-  SGP4's well-documented 1-3 km accuracy envelope for LEO objects with
-  fresh elements.
+- The range error (median 0.035 km, max 0.10 km at el>10°) sits well
+  inside SGP4's well-documented 1-3 km accuracy envelope for LEO objects
+  with fresh elements.
 - Error grows with TLE age (~2-6× from the first 12h to hour 36-48),
   which is exactly the expected SGP4 staleness behavior — and why the
   UI surfaces per-satellite TLE epoch age.

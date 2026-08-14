@@ -7,6 +7,7 @@
 import { useMemo, useState } from "react";
 import { useSatelliteStore } from "@/lib/satellite-store";
 import { getGroupColor } from "@/lib/color-utils";
+import Icon from "@/components/ui/Icon";
 
 const MAX_PICKED = 8;
 
@@ -78,7 +79,7 @@ export default function SatellitePicker({ picked, onChange }: Props) {
                   background: color,
                 }}
               />
-              {sat.name} ✕
+              {sat.name} <Icon name="close" />
             </button>
           );
         })}

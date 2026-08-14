@@ -14,6 +14,7 @@ import { useState, useCallback } from "react";
 import { useLocation } from "@/hooks/useLocation";
 import { DEFAULT_LOCATIONS } from "@/lib/pass-calculator";
 import { ObserverLocation } from "@/types";
+import { IconLabel } from "@/components/ui/Icon";
 
 export default function LocationInput() {
   const { observer, setLocation, requestGeolocation, setManualLocation } = useLocation();
@@ -189,7 +190,7 @@ export default function LocationInput() {
         style={{ fontSize: "0.65rem", padding: "0.25rem 0.5rem", marginTop: "0.3rem" }}
         onClick={handleGeolocate}
       >
-        📍 Use My Location
+        <IconLabel icon="pin">Use My Location</IconLabel>
       </button>
     </div>
   );

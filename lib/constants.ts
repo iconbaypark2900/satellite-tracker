@@ -2,7 +2,7 @@
  * Application constants — orbital mechanics values, group configs, and TLE sources.
  */
 
-import { DataSourceConfig, SatelliteGroup } from "@/types";
+import { CelestrakGroup, DataSourceConfig, SatelliteGroup } from "@/types";
 
 // ─── Physical Constants ───────────────────────────────── //
 
@@ -40,42 +40,76 @@ export const RAD_TO_DEG = 180 / Math.PI;
 
 // ─── Satellite Group Configuration ────────────────────── //
 
-/** Color mapping for each satellite constellation / group. */
+/**
+ * Display order for the mission categories, most-recognisable first. Every
+ * list and filter renders in this order rather than in whatever order the
+ * feed happened to arrive in, and skips categories with no members — with
+ * two feeds carrying different catalogues, which categories are populated
+ * changes from one refresh to the next.
+ */
+export const GROUP_ORDER: SatelliteGroup[] = [
+  "STATIONS",
+  "STARLINK",
+  "ONEWEB",
+  "NAVIGATION",
+  "WEATHER",
+  "COMMS",
+  "EARTH-OBS",
+  "AMATEUR",
+  "RESEARCH",
+  "DEBRIS",
+  "OTHER",
+];
+
+/** Color mapping for each mission category. */
 export const GROUP_COLORS: Record<SatelliteGroup, string> = {
-  STATIONS: "#FFD700",   // Gold (ISS, Tiangong, Hubble, etc.)
-  STARLINK: "#4A9EFF",   // Blue (SpaceX)
-  ONEWEB: "#BA68C8",     // Purple (OneWeb)
-  "GPS-OPS": "#81D4FA",  // Light blue (USAF GPS)
-  GOES: "#8AFF8A",       // Green (NOAA/NASA GOES)
-  SES: "#FFCC80",        // Apricot (SES)
-  INTREPID: "#FF80AB",   // Pink (Intelsat)
-  OTHER: "#ECEFF1",      // Gray (everything else)
+  STATIONS: "#FFD700",     // Gold (ISS, Tiangong)
+  STARLINK: "#4A9EFF",     // Blue (SpaceX)
+  ONEWEB: "#BA68C8",       // Purple (OneWeb)
+  NAVIGATION: "#81D4FA",   // Light blue (GPS, Glonass, Galileo)
+  WEATHER: "#8AFF8A",      // Green (NOAA, MetOp, Meteor, GOES)
+  COMMS: "#FFCC80",        // Apricot (Inmarsat, Intelsat, Meridian)
+  "EARTH-OBS": "#4DD0E1",  // Cyan (imaging and remote sensing)
+  AMATEUR: "#FF80AB",      // Pink (OSCAR and RS designators)
+  RESEARCH: "#C5A3FF",     // Lavender (university and tech-demo smallsats)
+  DEBRIS: "#A1887F",       // Brown (spent stages and fragments)
+  OTHER: "#ECEFF1",        // Gray (catalogued, mission not identifiable)
 };
 
-/** Human-readable label for each group. */
+/** Human-readable label for each mission category. */
 export const GROUP_LABELS: Record<SatelliteGroup, string> = {
-  STATIONS: "ISS & Stations",
+  STATIONS: "Space Stations",
   STARLINK: "Starlink",
   ONEWEB: "OneWeb",
-  "GPS-OPS": "GPS",
-  GOES: "GOES",
-  SES: "SES",
-  INTREPID: "Intelsat",
-  OTHER: "Other",
+  NAVIGATION: "Navigation",
+  WEATHER: "Weather",
+  COMMS: "Communications",
+  "EARTH-OBS": "Earth Observation",
+  AMATEUR: "Amateur Radio",
+  RESEARCH: "Research & CubeSats",
+  DEBRIS: "Rocket Bodies",
+  OTHER: "Unclassified",
 };
 
 // ─── Celestrak TLE Group URLs ──────────────────────────── //
 
-/** Map of Celestrak group names to their TLE fetch URLs. */
-export const CELESTRAK_TLE_GROUPS: Record<SatelliteGroup, string> = {
+/**
+ * Map of Celestrak feed names to their TLE fetch URLs. These are fetch
+ * sources, not display categories — everything fetched here is re-filed by
+ * `classifySatellite`. The amateur and weather feeds are included so the
+ * catalogue stays comparable to what the mirrors return when Celestrak is
+ * blocked.
+ */
+export const CELESTRAK_TLE_GROUPS: Record<CelestrakGroup, string> = {
   STATIONS: "https://celestrak.org/NORAD/elements/gp.php?GROUP=stations&FORMAT=tle",
   STARLINK: "https://celestrak.org/NORAD/elements/gp.php?GROUP=starlink&FORMAT=tle",
   ONEWEB: "https://celestrak.org/NORAD/elements/gp.php?GROUP=oneweb&FORMAT=tle",
   "GPS-OPS": "https://celestrak.org/NORAD/elements/gp.php?GROUP=gps-ops&FORMAT=tle",
   GOES: "https://celestrak.org/NORAD/elements/gp.php?GROUP=goes&FORMAT=tle",
   SES: "https://celestrak.org/NORAD/elements/gp.php?GROUP=ses&FORMAT=tle",
-  INTREPID: "https://celestrak.org/NORAD/elements/gp.php?GROUP=intelsat&FORMAT=tle",
-  OTHER: "https://celestrak.org/NORAD/elements/gp.php?GROUP=stations&FORMAT=tle",
+  INTELSAT: "https://celestrak.org/NORAD/elements/gp.php?GROUP=intelsat&FORMAT=tle",
+  WEATHER: "https://celestrak.org/NORAD/elements/gp.php?GROUP=weather&FORMAT=tle",
+  AMATEUR: "https://celestrak.org/NORAD/elements/gp.php?GROUP=amateur&FORMAT=tle",
 };
 
 /** Celestrak SATCAT records API endpoint. */
@@ -89,21 +123,25 @@ export const SATCAT_RECORDS_URL = "https://celestrak.org/satcat/records.php?FORM
 /**
  * Fallback satellite list used when Celestrak is unreachable.
  * Mirrors the dataset in demo/index.html.
+ *
+ * Entries carry no group: `getFallbackTles` runs them through
+ * `classifySatellite` like every other source, so this list cannot drift out
+ * of step with the live taxonomy.
  */
 export const DEFAULT_SATELLITES = [
-  { name: "ISS (ZARYA)", norad: "25544", group: "STATIONS", line1: "1 25544A          25210.50000000  .00016717  00000+0  31117-3 0  9993", line2: "2 25544  51.6329 247.4321 0004236 108.4901 259.6207 15.50018425472013" },
-  { name: "Hubble Space Telescope", norad: "20580", group: "STATIONS", line1: "1 20580A          25210.50000000  .00021626  00000+0  37774-3 0  9991", line2: "2 20580  28.4696 305.0650 0002841 305.7772  53.9005 15.50054119543140" },
-  { name: "Tiangong", norad: "48793", group: "STATIONS", line1: "1 48793A          25210.50000000  .00007752  00000+0  14935-3 0  9995", line2: "2 48793  41.4493 148.9702 0003405 200.8794 194.2918 15.49961958371084" },
-  { name: "Starlink-30001", norad: "70001", group: "STARLINK", line1: "1 70001A          25210.50000000  .00010000  00000+0  20000-3 0  9990", line2: "2 70001  43.0000 120.0000 0001000 150.0000 270.0000 15.40000000472012" },
-  { name: "Starlink-70001", norad: "71001", group: "STARLINK", line1: "1 71001A          25210.50000000  .00010000  00000+0  20000-3 0  9990", line2: "2 71001  43.0000 180.0000 0001000 200.0000 300.0000 15.40000000472012" },
-  { name: "OneWeb-2001", norad: "44926", group: "ONEWEB", line1: "1 44926A          25210.50000000  .00005000  00000+0  10000-3 0  9990", line2: "2 44926  55.0000 100.0000 0002000 100.0000 250.0000 15.00000000472012" },
-  { name: "GPS IIR-10 (USA-183)", norad: "29494", group: "GPS-OPS", line1: "1 29494A          25210.50000000  .00000051  00000-0  16066-3 0  9998", line2: "2 29494  54.4416 241.5527 0137478 166.8037 193.8571  2.00575733543232" },
-  { name: "GOES-East (G16)", norad: "39246", group: "GOES", line1: "1 39246A          25210.50000000  .00000111  00000+0  00000-0 0  9993", line2: "2 39246   0.2762 311.1517 0000111 010.8557 249.1448  1.00271434147700" },
-  { name: "INTELSAT 902", norad: "27627", group: "INTREPID", line1: "1 27627A          25210.50000000  .00000200  00000+0  10000-3 0  9995", line2: "2 27627   1.2000  50.0000 0010000 200.0000 100.0000  1.00100000477000" },
-  { name: "NOAA 20 (JPSS-1)", norad: "40697", group: "GOES", line1: "1 40697A          25210.50000000  .00000050  00000+0  10000-3 0  9998", line2: "2 40697  98.6000 100.0000 0010000 200.0000 100.0000 14.20000000472012" },
-  { name: "Sentinel-3A", norad: "40699", group: "STATIONS", line1: "1 40699A          25210.50000000  .00001000  00000+0  20000-3 0  9991", line2: "2 40699  98.6000 150.0000 0010000 200.0000 300.0000 14.30000000472012" },
-  { name: "Voyager 1", norad: "01132", group: "OTHER", line1: "1 01132A          25210.50000000  .00000100  00000+0  10000-4 0  9998", line2: "2 01132  36.0000 200.0000 0009999 200.0000 100.0000  1.00500000477000" },
-  { name: "Voyager 2", norad: "01133", group: "OTHER", line1: "1 01133A          25210.50000000  .00000100  00000+0  10000-4 0  9998", line2: "2 01133  36.0000 210.0000 0009999 210.0000 110.0000  1.00500000477000" },
+  { name: "ISS (ZARYA)", norad: "25544", line1: "1 25544A          25210.50000000  .00016717  00000+0  31117-3 0  9993", line2: "2 25544  51.6329 247.4321 0004236 108.4901 259.6207 15.50018425472013" },
+  { name: "Hubble Space Telescope", norad: "20580", line1: "1 20580A          25210.50000000  .00021626  00000+0  37774-3 0  9991", line2: "2 20580  28.4696 305.0650 0002841 305.7772  53.9005 15.50054119543140" },
+  { name: "Tiangong", norad: "48793", line1: "1 48793A          25210.50000000  .00007752  00000+0  14935-3 0  9995", line2: "2 48793  41.4493 148.9702 0003405 200.8794 194.2918 15.49961958371084" },
+  { name: "Starlink-30001", norad: "70001", line1: "1 70001A          25210.50000000  .00010000  00000+0  20000-3 0  9990", line2: "2 70001  43.0000 120.0000 0001000 150.0000 270.0000 15.40000000472012" },
+  { name: "Starlink-70001", norad: "71001", line1: "1 71001A          25210.50000000  .00010000  00000+0  20000-3 0  9990", line2: "2 71001  43.0000 180.0000 0001000 200.0000 300.0000 15.40000000472012" },
+  { name: "OneWeb-2001", norad: "44926", line1: "1 44926A          25210.50000000  .00005000  00000+0  10000-3 0  9990", line2: "2 44926  55.0000 100.0000 0002000 100.0000 250.0000 15.00000000472012" },
+  { name: "GPS IIR-10 (USA-183)", norad: "29494", line1: "1 29494A          25210.50000000  .00000051  00000-0  16066-3 0  9998", line2: "2 29494  54.4416 241.5527 0137478 166.8037 193.8571  2.00575733543232" },
+  { name: "GOES-East (G16)", norad: "39246", line1: "1 39246A          25210.50000000  .00000111  00000+0  00000-0 0  9993", line2: "2 39246   0.2762 311.1517 0000111 010.8557 249.1448  1.00271434147700" },
+  { name: "INTELSAT 902", norad: "27627", line1: "1 27627A          25210.50000000  .00000200  00000+0  10000-3 0  9995", line2: "2 27627   1.2000  50.0000 0010000 200.0000 100.0000  1.00100000477000" },
+  { name: "NOAA 20 (JPSS-1)", norad: "40697", line1: "1 40697A          25210.50000000  .00000050  00000+0  10000-3 0  9998", line2: "2 40697  98.6000 100.0000 0010000 200.0000 100.0000 14.20000000472012" },
+  { name: "Sentinel-3A", norad: "40699", line1: "1 40699A          25210.50000000  .00001000  00000+0  20000-3 0  9991", line2: "2 40699  98.6000 150.0000 0010000 200.0000 300.0000 14.30000000472012" },
+  { name: "Voyager 1", norad: "01132", line1: "1 01132A          25210.50000000  .00000100  00000+0  10000-4 0  9998", line2: "2 01132  36.0000 200.0000 0009999 200.0000 100.0000  1.00500000477000" },
+  { name: "Voyager 2", norad: "01133", line1: "1 01133A          25210.50000000  .00000100  00000+0  10000-4 0  9998", line2: "2 01133  36.0000 210.0000 0009999 210.0000 110.0000  1.00500000477000" },
 ] as const;
 
 // ─── Pass Prediction ──────────────────────────────────── //

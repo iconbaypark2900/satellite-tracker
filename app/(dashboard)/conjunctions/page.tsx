@@ -20,6 +20,7 @@ import { getGroupColor } from "@/lib/color-utils";
 import { SatelliteGroup, TleSet } from "@/types";
 import PcCell from "@/components/ui/PcCell";
 import { PC_ASSUMPTION_NOTE } from "@/lib/collision-probability";
+import Icon, { IconLabel } from "@/components/ui/Icon";
 
 const DISPLAY_CAP = 200;
 
@@ -62,7 +63,10 @@ export default function ConjunctionsPage() {
 
       <div className="absolute top-14 left-0 right-80 bottom-10 overflow-auto">
         <div className="max-w-5xl mx-auto p-4">
-          <h1 className="text-xl font-bold mb-1">⚠️ Conjunction Screening</h1>
+          <h1 className="text-xl font-bold mb-1 flex items-center gap-2">
+            <Icon name="alert" />
+            Conjunction Screening
+          </h1>
           <p className="text-xs text-[#6f6d69] mb-4">
             All-vs-all close-approach search: spatial-hash screening on a
             coarse grid with a velocity-aware interval test, golden-section
@@ -116,7 +120,7 @@ export default function ConjunctionsPage() {
                 style={{ width: "auto", marginBottom: 0, padding: "0.2rem 1rem", marginLeft: "auto", color: "#ff80ab" }}
                 onClick={screener.cancel}
               >
-                ✕ Cancel
+                <IconLabel icon="close">Cancel</IconLabel>
               </button>
             ) : (
               <button
@@ -132,7 +136,7 @@ export default function ConjunctionsPage() {
                 onClick={() => screener.run(visibleTles, hours, thresholdKm)}
                 disabled={!canRun}
               >
-                ▶ Run screening
+                <IconLabel icon="play">Run screening</IconLabel>
               </button>
             )}
           </div>
@@ -277,7 +281,9 @@ export default function ConjunctionsPage() {
       {error && (
         <div className="fixed inset-0 bg-space/90 flex items-center justify-center z-[100]">
           <div className="p-6 text-center">
-            <div className="text-2xl mb-2">⚠️</div>
+            <div className="mb-2 flex justify-center text-satellite-orange">
+              <Icon name="alert" size={26} />
+            </div>
             <p className="text-sm text-text-muted mb-1">{error}</p>
             <p className="text-xs text-text-muted">Retrying…</p>
           </div>

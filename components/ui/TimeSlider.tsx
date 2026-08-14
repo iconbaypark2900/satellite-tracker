@@ -11,6 +11,7 @@ import { useEffect, useCallback } from "react";
 import { useTimeControl } from "@/hooks/useTimeControl";
 import { TIME_SLIDER_MIN, TIME_SLIDER_MAX, TIME_SLIDER_STEP } from "@/lib/constants";
 import { useSatelliteStore } from "@/lib/satellite-store";
+import { IconLabel } from "@/components/ui/Icon";
 
 export default function TimeSlider() {
   const { offsetMinutes, isPlaying, speed, simTime, setTime, reset, play, pause, setSpeed } = useTimeControl();
@@ -83,14 +84,16 @@ export default function TimeSlider() {
           style={{ fontSize: "0.65rem", padding: "0.2rem 0.5rem" }}
           onClick={isPlaying ? pause : play}
         >
-          {isPlaying ? "⏸ Pause" : "▶ Play"}
+          <IconLabel icon={isPlaying ? "pause" : "play"}>
+            {isPlaying ? "Pause" : "Play"}
+          </IconLabel>
         </button>
         <button
           className="sb"
           style={{ fontSize: "0.65rem", padding: "0.2rem 0.5rem" }}
           onClick={reset}
         >
-          ⟲ Now
+          <IconLabel icon="reset">Now</IconLabel>
         </button>
         <select
           className="sb"

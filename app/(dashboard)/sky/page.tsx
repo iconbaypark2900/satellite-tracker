@@ -15,6 +15,7 @@ import TimeSlider from "@/components/ui/TimeSlider";
 import SkyView from "@/components/sky/SkyView";
 import { useSatelliteStore } from "@/lib/satellite-store";
 import { useSatelliteInitializer } from "@/hooks/useSatelliteInitializer";
+import Icon from "@/components/ui/Icon";
 
 export default function SkyPage() {
   useSatelliteInitializer();
@@ -51,7 +52,9 @@ export default function SkyPage() {
       {error && (
         <div className="fixed inset-0 bg-space/90 flex items-center justify-center z-[100]">
           <div className="p-6 text-center">
-            <div className="text-2xl mb-2">⚠️</div>
+            <div className="mb-2 flex justify-center text-satellite-orange">
+              <Icon name="alert" size={26} />
+            </div>
             <p className="text-sm text-text-muted mb-1">{error}</p>
             <p className="text-xs text-text-muted">Retrying…</p>
           </div>

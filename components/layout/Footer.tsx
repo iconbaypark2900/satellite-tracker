@@ -6,6 +6,7 @@
 "use client";
 
 import { useSatelliteStore } from "@/lib/satellite-store";
+import { IconLabel } from "@/components/ui/Icon";
 
 export default function Footer() {
   const tleAge = useSatelliteStore((s) => s.tleAge);
@@ -32,11 +33,11 @@ export default function Footer() {
       <div>
         Data: <a href="https://celestrak.org" target="_blank" rel="noopener noreferrer" style={{ color: "#4a9eff" }}>Celestrak</a> +{" "}
         <a href="https://nasa.gov" target="_blank" rel="noopener noreferrer" style={{ color: "#4a9eff" }}>NASA</a> |{" "}
-        <span>⚡ SGP4 via satellite.js</span>
+        <IconLabel icon="bolt" gap="0.3rem">SGP4 via satellite.js</IconLabel>
       </div>
 
       <div style={{ display: "flex", gap: "1rem" }}>
-        <a href="https://github.com/Quantum-Global-Group/satellite-tracker" target="_blank" rel="noopener noreferrer" style={{ color: "#4a9eff" }}>GitHub</a>
+        <a href="https://github.com/iconbaypark2900/satellite-tracker" target="_blank" rel="noopener noreferrer" style={{ color: "#4a9eff" }}>GitHub</a>
         <a href="/demo/index.html" style={{ color: "#4a9eff" }}>Demo</a>
         <a href="/docs/PRD.md" style={{ color: "#4a9eff" }}>PRD</a>
       </div>

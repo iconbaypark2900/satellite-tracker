@@ -14,13 +14,14 @@ import { formatMinutes } from "@/lib/time-utils";
 import { useSunPosition } from "@/hooks/useSunPosition";
 import { useObserver } from "@/lib/satellite-store";
 import { DEG_TO_RAD, RAD_TO_DEG, EARTH_RADIUS_KM } from "@/lib/constants";
+import Icon, { IconName } from "@/components/ui/Icon";
 
-const NAV_LINKS = [
-  { href: "/globe", label: "🌍 Globe" },
-  { href: "/sky", label: "🔭 Sky" },
-  { href: "/passes", label: "📅 Passes" },
-  { href: "/stations", label: "📡 Stations" },
-  { href: "/conjunctions", label: "⚠️ Conjunctions" },
+const NAV_LINKS: { href: string; label: string; icon: IconName }[] = [
+  { href: "/globe", label: "Globe", icon: "globe" },
+  { href: "/sky", label: "Sky", icon: "stars" },
+  { href: "/passes", label: "Passes", icon: "calendar" },
+  { href: "/stations", label: "Stations", icon: "signal" },
+  { href: "/conjunctions", label: "Conjunctions", icon: "alert" },
 ];
 
 export default function Header() {
@@ -79,20 +80,39 @@ export default function Header() {
     >
       <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
         <h1 style={{ fontSize: "1.1rem", margin: 0 }}>
-          <Link href="/globe" style={{ color: "#4137ff", textDecoration: "none" }}>
-            🛰️ Satellite Tracker
+          <Link
+            href="/globe"
+            style={{
+              color: "#4137ff",
+              textDecoration: "none",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "0.45rem",
+            }}
+          >
+            <Icon name="satellite" />
+            Satellite Tracker
           </Link>
         </h1>
         {error && (
-          <span style={{ color: "#ff80ab", fontSize: "0.7rem" }}>
-            ⚠️ {error}
+          <span
+            style={{
+              color: "#ff80ab",
+              fontSize: "0.7rem",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "0.3rem",
+            }}
+          >
+            <Icon name="alert" />
+            {error}
           </span>
         )}
       </div>
 
       {/* View navigation */}
       <nav style={{ display: "flex", alignItems: "center", gap: "0.25rem" }}>
-        {NAV_LINKS.map(({ href, label }) => {
+        {NAV_LINKS.map(({ href, label, icon }) => {
           const active = pathname === href;
           return (
             <Link
@@ -107,8 +127,12 @@ export default function Header() {
                   ? "2px solid #4a9eff"
                   : "2px solid transparent",
                 fontWeight: active ? 600 : 400,
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "0.4rem",
               }}
             >
+              <Icon name={icon} />
               {label}
             </Link>
           );
@@ -130,12 +154,42 @@ export default function Header() {
           color: "#6f6d69",
         }}
       >
-        <span>🛰️ <span style={{ color: "#4a9eff" }}>{satellites.size}</span> tracked</span>
-        <span>🌞 Sun: <span style={{ color: "#4a9eff" }}>{Math.round(sunElevation)}°</span></span>
-        <span>⏱️ <span style={{ color: "#4a9eff" }}>{formatMinutes(timeControl.offsetMinutes)}</span></span>
-        <span>📡 TLE age: <span style={{ color: "#4a9eff" }}>{tleAgeMin.toFixed(1)}m</span></span>
-        {isLoading && <span style={{ color: "#4a9eff" }}>⏳ Loading…</span>}
+        <Stat icon="satellite">
+          <span style={{ color: "#4a9eff" }}>{satellites.size}</span> tracked
+        </Stat>
+        <Stat icon="sun">
+          Sun: <span style={{ color: "#4a9eff" }}>{Math.round(sunElevation)}°</span>
+        </Stat>
+        <Stat icon="clock">
+          <span style={{ color: "#4a9eff" }}>{formatMinutes(timeControl.offsetMinutes)}</span>
+        </Stat>
+        <Stat icon="signal">
+          TLE age: <span style={{ color: "#4a9eff" }}>{tleAgeMin.toFixed(1)}m</span>
+        </Stat>
+        {isLoading && (
+          <Stat icon="reset" style={{ color: "#4a9eff" }}>
+            Loading…
+          </Stat>
+        )}
       </div>
     </header>
+  );
+}
+
+/** One icon + value pair in the status cluster, on a shared baseline. */
+function Stat({
+  icon,
+  style,
+  children,
+}: {
+  icon: IconName;
+  style?: React.CSSProperties;
+  children: React.ReactNode;
+}) {
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: "0.35rem", ...style }}>
+      <Icon name={icon} />
+      <span>{children}</span>
+    </span>
   );
 }

@@ -15,6 +15,7 @@ import {
   kpColor,
   isBzSouthwardWarning,
 } from "@/lib/space-weather";
+import Icon from "@/components/ui/Icon";
 
 const fetcher = (url: string) =>
   fetch(url).then((r) => {
@@ -110,7 +111,8 @@ export default function SpaceWeatherPanel() {
             title={bzWarn ? "Southward Bz — geoeffective coupling" : undefined}
           >
             {data.imf.bzGsmNt > 0 ? "+" : ""}
-            {data.imf.bzGsmNt.toFixed(1)} nT{bzWarn ? " ⚠" : ""}
+            {data.imf.bzGsmNt.toFixed(1)} nT
+            {bzWarn ? <Icon name="alert" style={{ marginLeft: "0.25rem" }} /> : null}
           </span>
         </div>
       )}
@@ -124,7 +126,7 @@ export default function SpaceWeatherPanel() {
 
       {storm && (
         <p style={{ fontSize: "0.6rem", color: "#ffa726", marginTop: "0.2rem" }}>
-          ⚠ Geomagnetic storm — increased LEO drag; TLE accuracy degrades
+          <Icon name="alert" /> Geomagnetic storm — increased LEO drag; TLE accuracy degrades
           faster than usual.
         </p>
       )}
@@ -149,7 +151,10 @@ function SectionTitle() {
         marginBottom: "0.15rem",
       }}
     >
-      🌞 Space Weather
+      <span style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem" }}>
+        <Icon name="sun" />
+        Space Weather
+      </span>
     </h3>
   );
 }

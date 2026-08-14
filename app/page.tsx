@@ -11,7 +11,7 @@ export default function HomePage() {
 // Also export a loading state
 export function generateMetadata() {
   return {
-    title: "🛰️ Satellite Tracker",
+    title: "Satellite Tracker",
     description: "Real-time 3D satellite tracking with SGP4 orbital mechanics.",
   };
 }

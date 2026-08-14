@@ -7,6 +7,7 @@
 import { useState } from "react";
 import { useGroundStations } from "@/hooks/useGroundStations";
 import { useSatelliteStore } from "@/lib/satellite-store";
+import Icon, { IconLabel } from "@/components/ui/Icon";
 
 export default function StationManager() {
   const { stations, addGroundStation, updateGroundStation, removeGroundStation } =
@@ -98,7 +99,7 @@ export default function StationManager() {
                 fontSize: "0.7rem",
               }}
             >
-              ✕
+              <Icon name="close" title="Remove station" />
             </button>
           </span>
         </div>
@@ -150,7 +151,7 @@ export default function StationManager() {
           onClick={handleUseObserver}
           title="Prefill from the current observer location"
         >
-          📍 Use observer
+          <IconLabel icon="pin">Use observer</IconLabel>
         </button>
       </div>
       {error && (

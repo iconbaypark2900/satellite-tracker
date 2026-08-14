@@ -4,7 +4,7 @@ import { ISS, NOAA_19 } from "../fixtures/tles";
 describe("parseTleText", () => {
   it("parses named 3-line TLE blocks", () => {
     const raw = [ISS.name, ISS.line1, ISS.line2, NOAA_19.name, NOAA_19.line1, NOAA_19.line2].join("\n");
-    const tles = parseTleText(raw, "OTHER");
+    const tles = parseTleText(raw);
     expect(tles).toHaveLength(2);
     expect(tles[0]).toMatchObject({
       name: "ISS",
@@ -14,14 +14,21 @@ describe("parseTleText", () => {
     expect(tles[1].noradId).toBe("33591");
   });
 
+  it("categorises each object by name, independent of the feed", () => {
+    const raw = [ISS.name, ISS.line1, ISS.line2, NOAA_19.name, NOAA_19.line1, NOAA_19.line2].join("\n");
+    const tles = parseTleText(raw);
+    expect(tles[0].group).toBe("STATIONS");
+    expect(tles[1].group).toBe("WEATHER");
+  });
+
   it("skips orphaned line1 without a following line2", () => {
     const raw = [ISS.name, ISS.line1, "garbage", NOAA_19.name, NOAA_19.line1, NOAA_19.line2].join("\n");
-    const tles = parseTleText(raw, "OTHER");
+    const tles = parseTleText(raw);
     expect(tles).toHaveLength(1);
     expect(tles[0].noradId).toBe("33591");
   });
 
   it("returns empty array for empty input", () => {
-    expect(parseTleText("", "OTHER")).toHaveLength(0);
+    expect(parseTleText("")).toHaveLength(0);
   });
 });

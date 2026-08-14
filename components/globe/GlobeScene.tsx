@@ -19,6 +19,7 @@ import SunLighting from "./SunLighting";
 import Starfield from "./Starfield";
 import SatelliteLayer from "./SatelliteLayer";
 import { TleSet, Satellite } from "@/types";
+import Icon from "@/components/ui/Icon";
 
 /** Earth radius used for rendering (km). */
 const EARTH_RADIUS = 6371;
@@ -67,7 +68,9 @@ export default function GlobeScene() {
     return (
       <div className="flex h-full w-full items-center justify-center">
         <div className="p-8 text-center">
-          <div className="mb-4 text-4xl">🌍</div>
+          <div className="mb-4 flex justify-center text-text-muted">
+            <Icon name="globe" size={40} />
+          </div>
           <h3 className="mb-2 font-bold text-lg">WebGL Not Available</h3>
           <p className="text-sm text-gray-400 max-w-md">
             Your browser does not support WebGL or it is disabled.

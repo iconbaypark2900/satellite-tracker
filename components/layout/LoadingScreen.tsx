@@ -8,6 +8,8 @@
 
 "use client";
 
+import Icon from "@/components/ui/Icon";
+
 export default function LoadingScreen() {
   return (
     <div
@@ -23,8 +25,17 @@ export default function LoadingScreen() {
         zIndex: 10,
       }}
     >
-      <div style={{ fontSize: "1rem", marginBottom: "0.5rem" }}>
-        🛰️ Loading globe…
+      <div
+        style={{
+          fontSize: "1rem",
+          marginBottom: "0.5rem",
+          display: "flex",
+          alignItems: "center",
+          gap: "0.5rem",
+        }}
+      >
+        <Icon name="satellite" />
+        Loading globe…
       </div>
 
       <div style={{ fontSize: "0.7rem", color: "#6f6d69", marginBottom: "1rem" }}>
