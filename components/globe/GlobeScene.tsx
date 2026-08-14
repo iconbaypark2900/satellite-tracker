@@ -11,13 +11,14 @@
 "use client";
 
 import { Canvas } from "@react-three/fiber";
-import { OrbitControls, Stats } from "@react-three/drei";
+import { OrbitControls } from "@react-three/drei";
 import { useEffect, Suspense, useState, useMemo } from "react";
 import { useSatelliteStore } from "@/lib/satellite-store";
 import Earth from "./Earth";
 import SunLighting from "./SunLighting";
 import Starfield from "./Starfield";
 import SatelliteLayer from "./SatelliteLayer";
+import FpsProbe from "./FpsProbe";
 import { TleSet, Satellite } from "@/types";
 import Icon from "@/components/ui/Icon";
 
@@ -111,8 +112,10 @@ export default function GlobeScene() {
         maxDistance={EARTH_RADIUS * 5}
       />
 
-      {/* Optional performance stats (development only) */}
-      {process.env.NODE_ENV === "development" && <Stats />}
+      {/* Frame rate is reported to the header status cluster rather than
+          drawn as a floating panel — drei's <Stats /> pins itself to the
+          viewport's top-left corner, directly on top of the wordmark. */}
+      <FpsProbe />
     </Canvas>
   );
 }

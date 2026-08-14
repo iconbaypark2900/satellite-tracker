@@ -69,18 +69,9 @@ export default function SatelliteList({
 
   return (
     <div className="flex flex-col h-full">
-      {/* Header */}
-      <div className="mb-3">
-        <h1 className="text-primary text-lg font-bold mb-0.5 flex items-center gap-2">
-          <Icon name="satellite" />
-          Satellite Tracker
-        </h1>
-        <p className="text-text-muted text-xs">
-          Real-time orbital visualization with SGP4 propagation
-        </p>
-      </div>
-
-      {/* Search */}
+      {/* Search. The app title and tagline used to sit above this, repeating
+          the header verbatim — two <h1>s on the page and ~55px of the list's
+          height spent saying what the top-left corner already said. */}
       <div className="mb-2">
         <input
           type="text"
@@ -200,14 +191,20 @@ function GroupSection({
 
       {/* Satellite items */}
       {!isCollapsed && (
-        <ul className="pl-3 mt-0.5 space-y-0.25">
+        <ul className="pl-2 mt-0.5 space-y-0.25">
           {satellites.map((sat) => {
             const active = selectedNorad === sat.noradId;
 
             return (
               <li
                 key={sat.noradId}
-                className={`si relative cursor-pointer text-xs py-1 px-1.5 rounded transition-all duration-150 ${
+                // `.si` from the legacy stylesheet sets `display:flex` with
+                // `align-items:center`, so the name and the metadata line have
+                // always been laid out side by side rather than stacked — this
+                // is why they ran together as "Sun-Sync426 km". Now that
+                // utilities outrank that sheet, the column direction the markup
+                // always implied can actually be applied.
+                className={`si relative flex-col !items-start gap-0 cursor-pointer text-xs py-1 px-1.5 rounded transition-all duration-150 ${
                   active
                     ? "bg-primary/15 text-primary"
                     : "hover:bg-space-panel text-text-primary"
@@ -218,7 +215,11 @@ function GroupSection({
                 tabIndex={0}
                 aria-pressed={active}
               >
-                <span className="flex items-center gap-1.5">
+                {/* `min-w-0` on every flex row that contains a truncating
+                    child: without it a flex item's min-width resolves to its
+                    content, so `truncate` never engages and the row overflows
+                    the sidebar instead of ellipsing. */}
+                <span className="flex w-full min-w-0 items-center gap-1.5">
                   {/* Selection indicator */}
                   {active && (
                     <span className="w-1 h-4 bg-primary rounded-sm flex-shrink-0" />
@@ -234,29 +235,30 @@ function GroupSection({
                     }}
                   />
                   {/* Name + NORAD ID */}
-                  <span className="font-medium truncate">
+                  <span className="truncate font-medium">
                     {sat.name}
                   </span>
-                  <span className="text-text-muted/60 ml-1 font-mono">
+                  <span className="flex-shrink-0 text-text-muted/60 font-mono">
                     #{sat.noradId}
                   </span>
                 </span>
 
-                {/* Metadata row */}
-                <div className="flex justify-between items-center mt-0.5 ml-4 pl-2">
-                  <span className="text-text-muted font-mono text-xs">
-                    {(() => {
-                      const oType = orbitType(sat.altitude, sat.inclination);
-                      return oType;
-                    })()}
-                  </span>
-                  <span className="text-text-muted font-mono text-xs">
-                    {sat.altitude > 1000
-                      ? `${(sat.altitude / 1000).toFixed(1)}k km`
-                      : `${sat.altitude} km`}
-                    {" · "}
-                    {sat.inclination}°
-                  </span>
+                {/* One left-aligned line rather than two columns pushed apart.
+                    Justified against each other in a ~300px sidebar, the
+                    right-hand figures claimed a fixed width and starved the
+                    orbit type down to "P…". Read as a single phrase it
+                    truncates from the end, which loses precision before it
+                    loses meaning. Inclination is rounded to a tenth — four
+                    decimals is noise at list density, and the exact figure is
+                    one click away in the detail panel. */}
+                <div className="mt-0.5 w-full truncate pl-3.5 font-mono text-xs text-text-muted">
+                  {orbitType(sat.altitude, sat.inclination)}
+                  {" · "}
+                  {sat.altitude > 1000
+                    ? `${(sat.altitude / 1000).toFixed(1)}k km`
+                    : `${Math.round(sat.altitude)} km`}
+                  {" · "}
+                  {sat.inclination.toFixed(1)}°
                 </div>
               </li>
             );

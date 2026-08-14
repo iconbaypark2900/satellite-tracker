@@ -12,6 +12,7 @@ import { useSatelliteStore } from "@/lib/satellite-store";
 import { TLE_CACHE_TTL, GROUP_LABELS } from "@/lib/constants";
 import { Satellite, TleSet, SatelliteGroup, SatelliteOperator } from "@/types";
 import { classifySatellite } from "@/lib/classify-satellite";
+import { missionProfile } from "@/lib/mission-profiles";
 import { getGroupColor } from "@/lib/color-utils";
 import { computeOrbitalParams, parseIntlDesignator } from "@/lib/orbit-utils";
 import { STATIC_SATELLITE_METADATA } from "@/lib/satellite-metadata";
@@ -38,13 +39,22 @@ function buildSatellite(tle: TleSet): Satellite {
   const staticMeta = STATIC_SATELLITE_METADATA[tle.noradId];
   const designator = parseIntlDesignator(tle.line1);
 
+  // The mission profile knows the operator for whole families — every NOAA
+  // craft is NOAA's, every SITRO-AIS is Sputnix's. That covers most of the
+  // catalogue without a network call, which matters because SATCAT (the
+  // only other source of an operator) is unreachable on many networks.
+  const mission = missionProfile({ noradId: tle.noradId, name: tle.name, group });
+  const missionOperator = mission.operator
+    ? { name: mission.operator, country: mission.country ?? "Unknown" }
+    : undefined;
+
   return {
     noradId: tle.noradId,
     name: tle.name,
     tle: tle,
     group,
     type: staticMeta?.type ?? inferType(group),
-    operator: staticMeta?.operator ?? inferOperator(group),
+    operator: staticMeta?.operator ?? missionOperator ?? inferOperator(group),
     period: params.period ?? 0,
     inclination: params.inclination ?? 0,
     raan: params.raan ?? 0,
@@ -75,6 +85,7 @@ export function useSatelliteInitializer() {
     setLoading,
     setError,
     setTleAge,
+    setTleSource,
   } = useSatelliteStore();
 
   const { data, error, isValidating } = useSWR(
@@ -111,6 +122,8 @@ export function useSatelliteInitializer() {
         setLoading(false);
         setError(null);
 
+        setTleSource(typeof data.source === "string" ? data.source : null);
+
         // Record TLE age
         if (data.fetchedAt) {
           const age = (Date.now() - new Date(data.fetchedAt).getTime()) / 1000;
@@ -128,7 +141,7 @@ export function useSatelliteInitializer() {
       // clear the loading state to prevent infinite loading screen
       setLoading(false);
     }
-  }, [data, error, isValidating, setSatellites, setLoading, setError, setTleAge]);
+  }, [data, error, isValidating, setSatellites, setLoading, setError, setTleAge, setTleSource]);
 
   // Safety: if the initial SWR fetch takes longer than 8s (e.g., Celestrak
   // timeout), fall back to a direct fetch from the local cache so the UI unblocks.

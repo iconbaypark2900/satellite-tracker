@@ -21,6 +21,7 @@ import { Satellite } from "@/types";
 import { orbitalVelocity, orbitType, tleEpochToDate } from "@/lib/orbit-utils";
 import { GROUP_COLORS, GROUP_LABELS } from "@/lib/constants";
 import { useSatCatRecord } from "@/hooks/useSatCatData";
+import { missionProfile, orbitInsight } from "@/lib/mission-profiles";
 import Icon from "@/components/ui/Icon";
 
 /** SGP4 error grows roughly 1–3 km/day past epoch. */
@@ -29,7 +30,7 @@ const TLE_VERY_STALE_DAYS = 7;
 
 export default function SatelliteDetail() {
   const { selectedSatellite, setSelectedSatellite } = useSatelliteStore();
-  const { record, isLoading, isError } = useSatCatRecord(
+  const { record, isLoading, isUnavailable } = useSatCatRecord(
     selectedSatellite?.noradId ?? null
   );
 
@@ -53,12 +54,13 @@ export default function SatelliteDetail() {
   return (
     <div className="dp">
       <SatelliteHeading sat={sat} color={color} />
+      <MissionSection sat={sat} />
       <OrbitSection sat={sat} />
       <CatalogueSection
         sat={sat}
         record={record}
         isLoading={isLoading}
-        isError={isError}
+        isUnavailable={isUnavailable}
       />
       <TleProvenance sat={sat} />
 
@@ -101,8 +103,34 @@ function SatelliteHeading({ sat, color }: { sat: Satellite; color: string }) {
   );
 }
 
-/** Computed locally from the TLE — no source can be missing here. */
+/**
+ * What the satellite is for. The heading changes with the tier so the panel
+ * never implies it knows more than it does: "Mission" is a claim about this
+ * object, "About this class" is a claim about the kind of object.
+ */
+function MissionSection({ sat }: { sat: Satellite }) {
+  const mission = missionProfile(sat);
+  const specific = mission.tier !== "class";
+
+  return (
+    <section className="mt-2">
+      <SectionLabel>{specific ? "Mission" : "About this class"}</SectionLabel>
+      <p className="text-text-primary/85 text-xs leading-relaxed py-0.5">
+        {mission.purpose}
+      </p>
+    </section>
+  );
+}
+
+/**
+ * Computed locally from the TLE — no source can be missing here.
+ *
+ * Led by what the orbit itself means. The shape of an orbit is a design
+ * decision, and saying why it was chosen turns five numbers into something
+ * a reader can reason about.
+ */
 function OrbitSection({ sat }: { sat: Satellite }) {
+  const insight = orbitInsight(sat);
   const rows: [string, string][] = [
     ["Altitude", `${Math.round(sat.altitude)} km`],
     ["Period", `${sat.period.toFixed(1)} min`],
@@ -116,6 +144,15 @@ function OrbitSection({ sat }: { sat: Satellite }) {
   return (
     <section className="mt-2">
       <SectionLabel>Orbit</SectionLabel>
+      {insight && (
+        <p className="text-text-muted text-xs leading-relaxed pb-1">
+          {/* The regime name leads the sentence rather than joining the
+              section label — uppercased in the header it reads as shouting. */}
+          <span className="text-text-primary/80 font-medium">{insight.label}</span>
+          {" — "}
+          {insight.text}
+        </p>
+      )}
       {rows.map(([label, value]) => (
         <div key={label} className="dr">
           <span className="lab">{label}</span>
@@ -135,12 +172,12 @@ function CatalogueSection({
   sat,
   record,
   isLoading,
-  isError,
+  isUnavailable,
 }: {
   sat: Satellite;
   record: ReturnType<typeof useSatCatRecord>["record"];
   isLoading: boolean;
-  isError: unknown;
+  isUnavailable: boolean;
 }) {
   const rows: [string, string][] = [];
 
@@ -172,7 +209,7 @@ function CatalogueSection({
       <CatalogueStatus
         hasIdentity={Boolean(operator && country)}
         isLoading={isLoading}
-        isError={isError}
+        isUnavailable={isUnavailable}
       />
     </section>
   );
@@ -191,15 +228,15 @@ function CatalogueSection({
 function CatalogueStatus({
   hasIdentity,
   isLoading,
-  isError,
+  isUnavailable,
 }: {
   hasIdentity: boolean;
   isLoading: boolean;
-  isError: unknown;
+  isUnavailable: boolean;
 }) {
   if (hasIdentity) return null;
 
-  const message = isError
+  const message = isUnavailable
     ? "Operator lookup unavailable — Celestrak unreachable"
     : isLoading
       ? "Looking up catalogue record…"
@@ -208,7 +245,7 @@ function CatalogueStatus({
   return (
     <p
       className="text-text-muted/70 text-xs italic py-1 leading-snug"
-      role={isError ? "status" : undefined}
+      role={isUnavailable ? "status" : undefined}
     >
       {message}
     </p>

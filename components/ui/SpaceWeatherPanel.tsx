@@ -23,7 +23,7 @@ const fetcher = (url: string) =>
     return r.json();
   });
 
-export default function SpaceWeatherPanel() {
+export default function SpaceWeatherPanel({ hideTitle = false }: { hideTitle?: boolean } = {}) {
   const { data, error } = useSWR<SpaceWeatherSummary>(
     "/api/spaceweather",
     fetcher,
@@ -44,7 +44,7 @@ export default function SpaceWeatherPanel() {
   if (error || (data && !data.kp && !data.solarWind && !data.imf && !data.xray)) {
     return (
       <div style={{ padding: "0.5rem 0.7rem" }}>
-        <SectionTitle />
+        {!hideTitle && <SectionTitle />}
         <p style={{ fontSize: "0.62rem", color: "#6f6d69" }}>
           NOAA SWPC unavailable
         </p>
@@ -55,7 +55,7 @@ export default function SpaceWeatherPanel() {
   if (!data) {
     return (
       <div style={{ padding: "0.5rem 0.7rem" }}>
-        <SectionTitle />
+        {!hideTitle && <SectionTitle />}
         <p style={{ fontSize: "0.62rem", color: "#6f6d69" }}>Loading…</p>
       </div>
     );
@@ -70,7 +70,7 @@ export default function SpaceWeatherPanel() {
 
   return (
     <div style={{ padding: "0.5rem 0.7rem" }}>
-      <SectionTitle />
+      {!hideTitle && <SectionTitle />}
 
       {data.kp && (
         <div style={rowStyle}>

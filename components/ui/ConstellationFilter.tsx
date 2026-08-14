@@ -105,7 +105,7 @@ export default function ConstellationFilter({ compact = false }: Props) {
               }}
               onClick={() => toggleConstellation(group, !visible)}
             >
-              <span className="flex items-center gap-1">
+              <span className="flex min-w-0 items-center gap-1">
                 <span
                   className="dot"
                   style={{
@@ -115,9 +115,13 @@ export default function ConstellationFilter({ compact = false }: Props) {
                     height: compact ? "5px" : "6px",
                   }}
                 />
-                <span>{label}</span>
+                <span className="truncate">{label}</span>
               </span>
-              <span style={{ color: "#6f6d69", fontSize: "0.6rem" }}>{count}</span>
+              {/* Never allowed to shrink: the count is the point of the row,
+                  and "Research & CubeSats" is long enough to squeeze it out. */}
+              <span className="flex-shrink-0 pl-1" style={{ color: "#6f6d69", fontSize: "0.6rem" }}>
+                {count}
+              </span>
             </div>
           );
         })}

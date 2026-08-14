@@ -36,18 +36,26 @@ export async function GET(request: NextRequest) {
   const limitedIds = ids.slice(0, 100);
 
   try {
-    const records = await fetchSatCatRecords(limitedIds);
+    const { records, unavailable, reason } = await fetchSatCatRecords(limitedIds);
 
+    // 200 even when Celestrak is down. The proxy did its job: it looked,
+    // the upstream was not there, and it is saying so in the body. A 502
+    // here logged a console error on every satellite selection for an
+    // outage the UI already handles, and gave callers no way to tell an
+    // outage apart from an object that simply is not catalogued.
     return NextResponse.json({
       records,
       count: records.length,
       requested: ids.length,
+      unavailable,
+      ...(reason ? { reason } : {}),
     });
   } catch (error) {
+    // Only genuine faults reach here — a bug in the client, not an outage.
     const message = error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json(
       { error: `Failed to fetch SATCAT data: ${message}` },
-      { status: 502 }
+      { status: 500 }
     );
   }
 }

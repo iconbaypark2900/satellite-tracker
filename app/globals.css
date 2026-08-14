@@ -1,7 +1,18 @@
 @import "tailwindcss";
-@import "../styles/globals.css";
-@import "../styles/animations.css";
-@import "../styles/satellite-colors.css";
+
+/*
+ * These sheets are pulled into the `base` layer on purpose.
+ *
+ * styles/globals.css opens with `* { margin: 0; padding: 0 }`. Imported
+ * unlayered, that rule beat every Tailwind padding and margin utility in the
+ * app — cascade layers lose to unlayered CSS no matter the specificity — so
+ * `px-4`, `py-2` and friends silently did nothing everywhere. Assigning these
+ * sheets to `base` puts them below the `utilities` layer, which is where they
+ * were always meant to sit: a reset that utilities override.
+ */
+@import "../styles/globals.css" layer(base);
+@import "../styles/animations.css" layer(base);
+@import "../styles/satellite-colors.css" layer(base);
 
 @config "../tailwind.config.js";
 

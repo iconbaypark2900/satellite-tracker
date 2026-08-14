@@ -178,3 +178,59 @@ export function getDayNightFactor(
   const t = (dot + edgeSoftness) / (2 * edgeSoftness);
   return Math.max(0, Math.min(1, t));
 }
+
+// ─── Twilight ────────────────────────────────────────── //
+
+export interface TwilightPhase {
+  /** Standard name for this solar elevation band. */
+  name: string;
+  /** Whether the observer's sky is dark enough to see a sunlit satellite. */
+  satellitesVisible: boolean;
+  /** One-line explanation for the UI. */
+  note: string;
+}
+
+/**
+ * Classify a solar elevation into the standard twilight bands.
+ *
+ * This is the single most useful number for deciding whether to go outside:
+ * a satellite is only naked-eye visible when it is still in sunlight while
+ * the observer below is already in darkness. That window is exactly civil
+ * twilight through night, which is why the elevation is worth naming rather
+ * than leaving as a bare figure.
+ */
+export function twilightPhase(sunElevationDeg: number): TwilightPhase {
+  if (sunElevationDeg > 0) {
+    return {
+      name: "daylight",
+      satellitesVisible: false,
+      note: "Sun is up — the sky is far too bright to see satellites.",
+    };
+  }
+  if (sunElevationDeg > -6) {
+    return {
+      name: "civil twilight",
+      satellitesVisible: true,
+      note: "Sun just below the horizon. Only the brightest passes — the ISS, an Iridium-class flare — will show.",
+    };
+  }
+  if (sunElevationDeg > -12) {
+    return {
+      name: "nautical twilight",
+      satellitesVisible: true,
+      note: "The best satellite-watching window: the sky is dark, but objects overhead are still in full sunlight.",
+    };
+  }
+  if (sunElevationDeg > -18) {
+    return {
+      name: "astronomical twilight",
+      satellitesVisible: true,
+      note: "Sky is dark. Low-orbit satellites are entering Earth's shadow, so passes start to disappear mid-track.",
+    };
+  }
+  return {
+    name: "night",
+    satellitesVisible: false,
+    note: "Full darkness. Most low-orbit satellites are eclipsed; only high orbits stay sunlit.",
+  };
+}

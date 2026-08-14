@@ -52,6 +52,12 @@ export interface SatelliteStore extends SatelliteStoreState {
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
   setTleAge: (age: number) => void;
+  /** Where the current elements came from: live Celestrak, or a cache/mirror. */
+  tleSource: string | null;
+  setTleSource: (source: string | null) => void;
+  /** Rendered frames per second, sampled once a second by the globe. */
+  renderFps: number;
+  setRenderFps: (fps: number) => void;
 
   // ── Computed / Actions ──────────────────────────────── //
   /** Get satellites filtered by visible constellations. */
@@ -83,6 +89,8 @@ export const useSatelliteStore = create<SatelliteStore>()(
       label: "New York, NY, USA",
     },
     tleAge: Infinity,
+    tleSource: null,
+    renderFps: 0,
     isLoading: true,
     error: null,
     groundStations: [],
@@ -189,6 +197,16 @@ export const useSatelliteStore = create<SatelliteStore>()(
     setError: (error) =>
       set((state) => {
         state.error = error;
+      }),
+
+    setTleSource: (source) =>
+      set((state) => {
+        state.tleSource = source;
+      }),
+
+    setRenderFps: (fps) =>
+      set((state) => {
+        state.renderFps = fps;
       }),
 
     setTleAge: (age) =>
