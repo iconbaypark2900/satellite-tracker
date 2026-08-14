@@ -1,0 +1,54 @@
+# Fly.io configuration.
+#
+# The `app` line is intentionally absent — `fly launch` fills it in with the
+# generated name on first run. Everything below is deliberate, so answer "yes"
+# when it asks whether to keep this existing configuration.
+
+primary_region = "ewr"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[http_service]
+  # Must match the Dockerfile's PORT. The standalone server also binds
+  # HOSTNAME=0.0.0.0 there, without which Fly's proxy cannot reach it.
+  internal_port = 3000
+  force_https = true
+
+  # Scale to zero between visits. This is a browser-driven app with no
+  # background work: nothing needs to be running when nobody is looking at it,
+  # and a cold start costs a second or two on the next request.
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ["app"]
+
+  [http_service.concurrency]
+    type = "requests"
+    soft_limit = 200
+    hard_limit = 250
+
+# `/` is a redirect to /globe, which a health check would score as a failure,
+# so probe the real page instead.
+[[http_service.checks]]
+  grace_period = "10s"
+  interval = "30s"
+  method = "GET"
+  timeout = "5s"
+  path = "/globe"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  # 512MB is comfortable: SGP4 propagation for the globe runs in the browser's
+  # WebWorker, so the server only renders pages and answers the TLE, SATCAT and
+  # pass-prediction routes. Raise to 1024 if /api/passes over long windows
+  # starts getting OOM-killed.
+  memory = "512mb"
+  cpus = 1
+
+[env]
+  NODE_ENV = "production"
+  NEXT_TELEMETRY_DISABLED = "1"
+  # Set this once the hostname is known so OpenGraph metadata resolves against
+  # the real origin rather than the placeholder in app/layout.tsx:
+  #   fly secrets set NEXT_PUBLIC_SITE_URL=https://<app>.fly.dev

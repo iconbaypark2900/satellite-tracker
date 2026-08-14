@@ -1,0 +1,32 @@
+# Build inputs only — everything here either gets regenerated inside the
+# image or has no business in it.
+
+node_modules
+.next
+out
+build
+
+.git
+.github
+.gitignore
+
+# Local env and editor state
+.env*.local
+.vscode
+.idea
+*.swp
+.DS_Store
+
+# Docs and screenshots are large and never served
+docs
+README.md
+LICENSE
+
+# Test and tooling output
+coverage
+tsconfig.tsbuildinfo
+*.log
+
+# Fly's own artefacts
+fly.toml
+.fly

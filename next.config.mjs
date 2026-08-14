@@ -1,6 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  // Emit a self-contained server bundle so the Docker runtime stage can ship
+  // without node_modules. Fly runs this as `node server.js`.
+  output: "standalone",
   // The TLE cache file is read with readFileSync at runtime — serverless
   // output tracing must bundle it or the offline fallback silently breaks.
   outputFileTracingIncludes: {
