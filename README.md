@@ -1,4 +1,4 @@
-# 🛰️ Satellite Tracker
+# Satellite Tracker
 
 A real-time, interactive 3D satellite tracking platform for space enthusiasts, amateur astronomers, and educators.
 
@@ -11,21 +11,21 @@ A real-time, interactive 3D satellite tracking platform for space enthusiasts, a
 
 ---
 
-## 📖 Table of Contents
+## Table of Contents
 
-- [Demo](#-demo)
-- [Quick Start](#-quick-start)
-- [Project Structure](#-project-structure)
-- [Validated Accuracy](#-validated-accuracy)
-- [Satellite Categories](#-satellite-categories)
-- [Data Sources](#-data-sources)
-- [Architecture Overview](#-architecture-overview)
-- [Roadmap](#-roadmap)
-- [License](#-license)
+- [Demo](#demo)
+- [Quick Start](#quick-start)
+- [Project Structure](#project-structure)
+- [Validated Accuracy](#validated-accuracy)
+- [Satellite Categories](#satellite-categories)
+- [Data Sources](#data-sources)
+- [Architecture Overview](#architecture-overview)
+- [Roadmap](#roadmap)
+- [License](#license)
 
 ---
 
-## 🎮 Demo
+## Demo
 
 A working, dependency-free prototype lives in [`demo/index.html`](demo/index.html). Open it in any browser:
 
@@ -46,7 +46,7 @@ The full PRD with the Next.js + Three.js architecture is in [`docs/PRD.md`](docs
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 ```bash
 # Clone & install
@@ -80,7 +80,7 @@ pnpm validate
 
 ---
 
-## 📐 Project Structure
+## Project Structure
 
 ```
 satellite-tracker/
@@ -119,7 +119,7 @@ satellite-tracker/
 
 ---
 
-## ✅ Validated Accuracy
+## Validated Accuracy
 
 Predictions are validated against **JPL Horizons** (see
 [`docs/VALIDATION.md`](docs/VALIDATION.md) for methodology and
@@ -141,7 +141,7 @@ than trusting a recorded number.
 
 ---
 
-## 🛰 Satellite Categories
+## Satellite Categories
 
 Every object is filed into a **mission category** by
 [`lib/classify-satellite.ts`](lib/classify-satellite.ts), which matches on the
@@ -176,7 +176,7 @@ rather than a dumping ground.
 
 ---
 
-## 🔭 Data Sources
+## Data Sources
 
 | Source | Purpose |
 |--------|---------|
@@ -187,7 +187,7 @@ rather than a dumping ground.
 
 ---
 
-## 🏗 Architecture Overview
+## Architecture Overview
 
 ```
 Browser (R3F + Zustand)
@@ -222,23 +222,23 @@ Ops-grade tooling:
 
 ---
 
-## 📋 Roadmap
+## Roadmap
 
 See [`docs/PRD.md`](docs/PRD.md) for the full specification and the
 honest per-item checklist. Summary:
 
-- **Phases 1–3 (MVP + views):** 3D globe with real NASA textures, ~400 live satellites (8000-capable), WebWorker SGP4, pass predictions, alt/az sky view, navigation — ✅ Done
+- **Phases 1–3 (MVP + views):** 3D globe with real NASA textures, ~400 live satellites (8000-capable), WebWorker SGP4, pass predictions, alt/az sky view, navigation — Yes Done
 - **Phase 4:** mobile/responsive audit, OpenGraph/sitemap SEO — partial
 - **Phase 5:** Vercel deploy (build pipeline ready), analytics, portfolio page — pending
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
 Pull requests welcome! See [`docs/PRD.md`](docs/PRD.md) for full architecture and technical decisions.
 
 ---
 
-## 📄 License
+## License
 
 MIT — see [LICENSE](LICENSE).
